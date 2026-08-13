@@ -26,13 +26,13 @@ public class QuickGradeFileProvider extends ContentProvider {
         if (name == null || name.contains("/") || name.contains("..")) {
             throw new FileNotFoundException("Invalid file path");
         }
-        File dir = new File(requireContext().getCacheDir(), "quickgrade_captures");
+        File dir = new File(requireProviderContext().getCacheDir(), "quickgrade_captures");
         File file = new File(dir, name);
         // The URI contains only a single sanitized file-name segment, so it cannot escape the cache folder.
         return file;
     }
 
-    private Context requireContext() throws FileNotFoundException {
+    private Context requireProviderContext() throws FileNotFoundException {
         Context context = getContext();
         if (context == null) throw new FileNotFoundException("Provider has no context");
         return context;
