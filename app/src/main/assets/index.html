@@ -60,6 +60,10 @@ input:focus,select:focus{border-color:#b99400;box-shadow:0 0 0 3px rgba(255,216,
 .sheet-wrap{overflow:auto;background:#eeeae0;border-radius:15px;padding:10px}
 #sheetSvg{display:block;width:min(100%,760px);height:auto;margin:auto;background:#fff;box-shadow:0 8px 25px rgba(0,0,0,.12)}
 .cam{width:100%;max-height:520px;background:#111;border-radius:14px;display:none;object-fit:contain}
+body.camera-fullscreen{overflow:hidden}
+body.camera-fullscreen #video{position:fixed;inset:0;z-index:200;width:100vw;height:100dvh;max-height:none;border-radius:0;object-fit:cover;background:#000}
+body.camera-fullscreen #captureBtn{position:fixed;z-index:202;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));width:calc(100% - 32px)!important;margin:0!important;min-height:58px;font-size:17px}
+body.camera-fullscreen #stopCamBtn{position:fixed;z-index:202;top:calc(12px + env(safe-area-inset-top));right:12px;width:auto!important;margin:0!important;background:rgba(255,255,255,.9)}
 #scanCanvas{display:block;width:100%;height:auto;background:#111;border-radius:14px;min-height:250px}
 .scan-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
 .filelabel{display:grid;place-items:center;text-align:center;border-radius:13px;padding:12px;background:var(--yellow);font-weight:900;cursor:pointer}
@@ -256,7 +260,8 @@ hr{border:0;border-top:1px solid #eee7d6;margin:15px 0}
         <input id="scanStudent" list="studentList" placeholder="Start typing learner name">
         <div class="scan-actions">
           <button class="action dark" id="liveCameraBtn">Open Camera</button>
-          <label class="filelabel">Take / Choose Photo<input id="photoInput" type="file" accept="image/*" capture="environment"></label>
+          <label class="filelabel">Take / Choose Photo<input id="photoInput" type="file" accept="image/*"></label>
+          <input id="cameraInput" type="file" accept="image/*" capture="environment" style="display:none">
         </div>
         <video id="video" class="cam" autoplay playsinline></video>
         <button class="action primary" id="captureBtn" style="display:none;width:100%;margin-top:8px">Capture & Grade</button>
@@ -659,10 +664,13 @@ async function dbEntries(){
 
 // ---------- Camera/photo ----------
 $('#scanQuiz').onchange=e=>{state.activeQuizId=e.target.value;saveMeta();refreshSelectors();};
-$('#photoInput').onchange=async e=>{
+async function handlePhotoInput(e){
   const f=e.target.files[0]; if(!f)return;
+  e.target.value='';
   state.currentBlob=f; const img=await blobToImage(f); state.currentImage=img; await scanImage(img);
-};
+}
+$('#photoInput').onchange=handlePhotoInput;
+$('#cameraInput').onchange=handlePhotoInput;
 function blobToImage(blob){
   return new Promise((resolve,reject)=>{
     const img=new Image();const u=URL.createObjectURL(blob);
@@ -670,12 +678,20 @@ function blobToImage(blob){
   });
 }
 $('#liveCameraBtn').onclick=async()=>{
+  if(window.AndroidBridge){
+    setStatus('Opening the rear camera...');
+    if(typeof window.AndroidBridge.requestDirectCapture==='function') window.AndroidBridge.requestDirectCapture();
+    $('#cameraInput').click();
+    return;
+  }
   try{
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('Camera API unavailable');
     state.stream=await navigator.mediaDevices.getUserMedia({
       video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false
     });
     $('#video').srcObject=state.stream;$('#video').style.display='block';
     $('#captureBtn').style.display='block';$('#stopCamBtn').style.display='block';
+    document.body.classList.add('camera-fullscreen');
     setStatus('Camera ready. Hold the phone above the whole sheet, then tap Capture & Grade.');
   }catch(e){
     setStatus('Live camera could not open here. Use “Take / Choose Photo”; on phones it can open the rear camera directly.',true);
@@ -692,6 +708,7 @@ $('#captureBtn').onclick=()=>{
 $('#stopCamBtn').onclick=stopCamera;
 function stopCamera(){
   if(state.stream){state.stream.getTracks().forEach(t=>t.stop());state.stream=null}
+  document.body.classList.remove('camera-fullscreen');
   $('#video').style.display='none';$('#captureBtn').style.display='none';$('#stopCamBtn').style.display='none';
 }
 function setStatus(t,bad=false,good=false){
@@ -819,6 +836,7 @@ async function scanImage(img){
   renderResult();
   setStatus('Scan complete. Review any wrong or blank items; you can tap a bubble below to correct a misread.',false,true);
   if($('#autoSave').checked)await saveCurrentScan(true);
+  requestAnimationFrame(()=>$('#resultCard').scrollIntoView({behavior:'smooth',block:'start'}));
 }
 function drawPreview(work,markers,scan){
   const c=$('#scanCanvas'),max=850,s=Math.min(1,max/work.width);

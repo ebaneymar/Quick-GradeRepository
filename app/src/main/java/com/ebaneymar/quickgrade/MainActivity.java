@@ -20,6 +20,8 @@ import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -27,16 +29,22 @@ import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 
 public class MainActivity extends Activity {
     private static final int REQ_FILE_CHOOSER = 501;
     private static final int REQ_CAMERA_PERMISSION = 502;
+    private static final String APP_HOST = "appassets.androidplatform.net";
+    private static final String APP_URL = "https://" + APP_HOST + "/assets/index.html";
 
     private WebView webView;
     private ValueCallback<Uri[]> fileCallback;
     private Uri pendingCameraUri;
     private PermissionRequest pendingWebPermissionRequest;
+    private boolean pendingDirectCapture;
+    private boolean pendingFileChooserLaunch;
+    private volatile boolean forceDirectCapture;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,8 +55,7 @@ public class MainActivity extends Activity {
         setContentView(webView);
 
         configureWebView();
-        requestCameraPermissionIfNeeded();
-        webView.loadUrl("file:///android_asset/index.html");
+        webView.loadUrl(APP_URL);
     }
 
     private void configureWebView() {
@@ -57,17 +64,37 @@ public class MainActivity extends Activity {
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
-        settings.setAllowFileAccess(true);
+        settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(true);
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
 
         webView.addJavascriptInterface(new AndroidBridge(), "AndroidBridge");
-        webView.setWebViewClient(new WebViewClient());
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                Uri uri = request.getUrl();
+                if ("https".equals(uri.getScheme())
+                        && APP_HOST.equals(uri.getHost())
+                        && "/assets/index.html".equals(uri.getPath())) {
+                    try {
+                        return new WebResourceResponse("text/html", "UTF-8", getAssets().open("index.html"));
+                    } catch (IOException e) {
+                        return null;
+                    }
+                }
+                return super.shouldInterceptRequest(view, request);
+            }
+        });
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public void onPermissionRequest(final PermissionRequest request) {
                 runOnUiThread(() -> {
+                    Uri origin = request.getOrigin();
+                    if (!"https".equals(origin.getScheme()) || !APP_HOST.equals(origin.getHost())) {
+                        request.deny();
+                        return;
+                    }
                     boolean wantsVideo = false;
                     for (String resource : request.getResources()) {
                         if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)) {
@@ -88,27 +115,46 @@ public class MainActivity extends Activity {
             public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> callback, FileChooserParams params) {
                 if (fileCallback != null) fileCallback.onReceiveValue(null);
                 fileCallback = callback;
+                pendingDirectCapture = forceDirectCapture || params.isCaptureEnabled();
+                forceDirectCapture = false;
 
-                Intent pickIntent = new Intent(Intent.ACTION_GET_CONTENT);
-                pickIntent.addCategory(Intent.CATEGORY_OPENABLE);
-                pickIntent.setType("image/*");
-
-                Intent cameraIntent = buildCameraIntent();
-                Intent chooser = Intent.createChooser(pickIntent, "Scan answer sheet");
-                if (cameraIntent != null) {
-                    chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{cameraIntent});
-                }
-
-                try {
-                    startActivityForResult(chooser, REQ_FILE_CHOOSER);
+                if (pendingDirectCapture
+                        && checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                    pendingFileChooserLaunch = true;
+                    requestPermissions(new String[]{Manifest.permission.CAMERA}, REQ_CAMERA_PERMISSION);
                     return true;
-                } catch (Exception e) {
-                    fileCallback = null;
-                    Toast.makeText(MainActivity.this, "Unable to open camera/photo picker", Toast.LENGTH_LONG).show();
-                    return false;
                 }
+                return launchFileChooser(pendingDirectCapture);
             }
         });
+    }
+
+    private boolean launchFileChooser(boolean directCapture) {
+        Intent cameraIntent = buildCameraIntent();
+        Intent intent;
+
+        if (directCapture && cameraIntent != null) {
+            intent = cameraIntent;
+        } else {
+            Intent pickIntent = new Intent(Intent.ACTION_GET_CONTENT);
+            pickIntent.addCategory(Intent.CATEGORY_OPENABLE);
+            pickIntent.setType("image/*");
+            intent = Intent.createChooser(pickIntent, "Scan answer sheet");
+            if (cameraIntent != null) {
+                intent.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{cameraIntent});
+            }
+        }
+
+        try {
+            startActivityForResult(intent, REQ_FILE_CHOOSER);
+            return true;
+        } catch (Exception e) {
+            if (fileCallback != null) fileCallback.onReceiveValue(null);
+            fileCallback = null;
+            pendingCameraUri = null;
+            Toast.makeText(this, "Unable to open the camera or photo picker", Toast.LENGTH_LONG).show();
+            return false;
+        }
     }
 
     private Intent buildCameraIntent() {
@@ -131,12 +177,6 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void requestCameraPermissionIfNeeded() {
-        if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{Manifest.permission.CAMERA}, REQ_CAMERA_PERMISSION);
-        }
-    }
-
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -147,7 +187,13 @@ public class MainActivity extends Activity {
                 else pendingWebPermissionRequest.deny();
                 pendingWebPermissionRequest = null;
             }
-            if (!granted) Toast.makeText(this, "Camera permission is needed for direct scanning.", Toast.LENGTH_SHORT).show();
+            if (pendingFileChooserLaunch) {
+                pendingFileChooserLaunch = false;
+                launchFileChooser(granted && pendingDirectCapture);
+            }
+            if (!granted) {
+                Toast.makeText(this, "Camera access is off. Enable it in Settings > Apps > QuickGrade > Permissions.", Toast.LENGTH_LONG).show();
+            }
         }
     }
 
@@ -176,6 +222,11 @@ public class MainActivity extends Activity {
     }
 
     private class AndroidBridge {
+        @JavascriptInterface
+        public void requestDirectCapture() {
+            forceDirectCapture = true;
+        }
+
         @JavascriptInterface
         public void saveDataUrl(String dataUrl, String fileName, String mimeType) {
             runOnUiThread(() -> saveDataUrlInternal(dataUrl, fileName, mimeType));
