@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffd84d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>QuickGrade Offline Scanner</title>
+
+
+<style>
+:root{
+  --yellow:#ffd84d;--yellow2:#f6bd00;--ink:#171717;--muted:#706b5f;
+  --paper:#fff;--bg:#f6f3e9;--line:#e6dfca;--good:#137c42;--bad:#b82b2b;
+  --shadow:0 12px 32px rgba(54,44,8,.10);
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink);background:
+linear-gradient(180deg,#fff5b8 0,#fffaf0 210px,var(--bg) 520px);min-height:100vh}
+button,input,select{font:inherit}
+button{touch-action:manipulation}
+.top{padding:20px 16px 10px;text-align:center}
+.brand{display:inline-flex;align-items:center;gap:10px;font-size:25px;font-weight:950;letter-spacing:-.5px}
+.logo{width:43px;height:43px;border-radius:13px;background:#171717;color:var(--yellow);display:grid;place-items:center;font-weight:1000;box-shadow:0 8px 20px rgba(0,0,0,.16)}
+.subtitle{font-size:13px;color:#5f594b;margin-top:6px}
+.wrap{max-width:1120px;margin:auto;padding:0 12px 40px}
+.nav{position:sticky;top:8px;z-index:20;display:flex;gap:5px;overflow-x:auto;background:#fff;border:1px solid var(--line);padding:6px;border-radius:17px;box-shadow:var(--shadow);scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.nav button{flex:1 0 auto;min-width:68px}
+.nav button{border:0;background:transparent;padding:10px 5px;border-radius:12px;font-size:12px;font-weight:850;color:#5a5549}
+.nav button.active{background:var(--yellow);color:#111}
+.page{display:none;margin-top:12px}.page.active{display:block}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+.card{grid-column:span 12;background:#fff;border:1px solid var(--line);border-radius:19px;padding:16px;box-shadow:var(--shadow)}
+@media(min-width:820px){.half{grid-column:span 6}.third{grid-column:span 4}.twothird{grid-column:span 8}}
+h1,h2,h3{margin:0}h2{font-size:21px}h3{font-size:16px}
+p{color:#575348;line-height:1.48}
+label{display:block;margin:10px 0 5px;font-size:12px;font-weight:850;color:#4d493f}
+input,select{width:100%;border:1px solid #d8d0ba;background:#fff;border-radius:11px;padding:11px 12px;outline:none}
+input:focus,select:focus{border-color:#b99400;box-shadow:0 0 0 3px rgba(255,216,77,.28)}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.right{margin-left:auto}
+.btn,button.action{border:0;border-radius:12px;padding:11px 14px;font-weight:900;cursor:pointer}
+.primary{background:var(--yellow);color:#111}.dark{background:#171717;color:#fff}.soft{background:#f4efe1;color:#181818;border:1px solid #e4dbc2!important}.danger{background:#ffe5e5;color:#8b2222}
+.hero-scan{width:100%;min-height:62px;font-size:18px;background:#171717;color:#fff;border:0;border-radius:16px;font-weight:950;cursor:pointer}
+.hero-scan span{color:var(--yellow)}
+.notice{padding:11px 12px;border-radius:12px;background:#fff5bf;border:1px solid #edd56a;color:#494331;font-size:13px;line-height:1.45}
+.notice.good{background:#ebf8ef;border-color:#badfc6}.notice.bad{background:#fff0f0;border-color:#edbcbc}
+.small{font-size:12px}.muted{color:var(--muted)}
+.stat{font-size:38px;font-weight:1000;letter-spacing:-1px}
+.score{font-size:55px;font-weight:1000;line-height:1}
+.key-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:8px}
+.key-item{display:flex;align-items:center;gap:7px;border-bottom:1px solid #f1ede3;padding:6px 1px}
+.key-num{width:25px;text-align:right;font-size:13px;font-weight:900}
+.bubbles{display:flex;gap:5px}
+.bubble-btn{width:29px;height:29px;padding:0;border-radius:50%;border:1.5px solid #bbb!important;background:#fff;color:#979797;font-size:11px;font-weight:800;display:grid;place-items:center;cursor:pointer}
+.bubble-btn.on{background:#252525;color:#fff;border-color:#252525!important}
+.sheet-wrap{overflow:auto;background:#eeeae0;border-radius:15px;padding:10px}
+#sheetSvg{display:block;width:min(100%,760px);height:auto;margin:auto;background:#fff;box-shadow:0 8px 25px rgba(0,0,0,.12)}
+.cam{width:100%;max-height:520px;background:#111;border-radius:14px;display:none;object-fit:contain}
+#scanCanvas{display:block;width:100%;height:auto;background:#111;border-radius:14px;min-height:250px}
+.scan-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.filelabel{display:grid;place-items:center;text-align:center;border-radius:13px;padding:12px;background:var(--yellow);font-weight:900;cursor:pointer}
+.filelabel input{display:none}
+.result-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:7px;margin-top:12px}
+.result-item{border:1px solid var(--line);border-radius:12px;padding:8px;text-align:center;background:#fff;font-size:13px}
+.result-item.correct{background:#eaf8ef;border-color:#b5dec2}.result-item.wrong{background:#fff0f0;border-color:#e8b2b2}.result-item.blank{background:#f2f2f2}
+.result-item .answer-edit{display:flex;justify-content:center;gap:3px;margin-top:6px}
+.result-item .answer-edit button{width:25px;height:25px;border-radius:50%;border:1px solid #bbb;background:#fff;color:#777;padding:0;font-size:10px;font-weight:800}
+.result-item .answer-edit button.on{background:#222;color:#fff;border-color:#222}
+table{width:100%;border-collapse:collapse;min-width:660px}
+th,td{border-bottom:1px solid #eee8d7;text-align:left;padding:9px 7px;font-size:13px}
+th{font-size:11px;text-transform:uppercase;color:#756e5c}
+.thumb{width:48px;height:58px;object-fit:cover;border-radius:7px;border:1px solid #ddd}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.storagebar{height:10px;border-radius:999px;background:#eee8d7;overflow:hidden}.storagebar>div{height:100%;background:var(--yellow2);width:0}
+.empty{padding:22px;text-align:center;color:#7b7567}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;display:none;align-items:center;justify-content:center;padding:14px}
+.modal.open{display:flex}.modal-card{width:min(900px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:18px;padding:12px}
+.modal img{width:100%;height:auto;border-radius:11px;background:#111}
+.closex{float:right;border:0;background:#eee7d8;border-radius:10px;padding:8px 11px;font-weight:900}
+.install{display:none}
+.savebadge{position:fixed;right:12px;bottom:12px;z-index:90;background:#171717;color:#fff;border-radius:999px;padding:8px 11px;font-size:11px;font-weight:850;box-shadow:0 8px 20px rgba(0,0,0,.2);opacity:.92}
+.savebadge b{color:#ffd84d}
+.roster-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+textarea{width:100%;min-height:150px;border:1px solid #d8d0ba;border-radius:12px;padding:11px;font:inherit;resize:vertical}
+.report-table{overflow:auto}
+.report-table table{min-width:520px}
+.checkline{display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid #eee8d7}
+.checkline input{width:auto}
+hr{border:0;border-top:1px solid #eee7d6;margin:15px 0}
+@media(max-width:560px){
+  .top{padding-top:15px}.brand{font-size:22px}.nav{top:4px}
+  .nav button{font-size:10px;padding:9px 2px}.card{padding:13px;border-radius:16px}
+  .key-grid{grid-template-columns:1fr 1fr}.bubble-btn{width:27px;height:27px}
+}
+@media print{
+  body *{visibility:hidden!important}
+  #sheetSvg,#sheetSvg *{visibility:visible!important}
+  #sheetSvg{position:absolute;left:0;top:0;width:210mm!important;height:297mm!important;box-shadow:none}
+  @page{size:A4 portrait;margin:0}
+}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="brand"><div class="logo">QG</div>QuickGrade</div>
+  <div class="subtitle">Offline phone scanner · scores + original scan saved locally</div>
+</div>
+<div id="saveBadge" class="savebadge"><b>✓</b> Auto-save ready</div>
+
+<div class="wrap">
+  <nav class="nav">
+    <button class="active" data-page="home">Home</button>
+    <button data-page="students">Students</button>
+    <button data-page="key">Key</button>
+    <button data-page="sheet">Sheet</button>
+    <button data-page="scan">Scan</button>
+    <button data-page="history">History</button>
+    <button data-page="reports">Reports</button>
+  </nav>
+
+  <section id="home" class="page active">
+    <div class="grid">
+      <div class="card twothird">
+        <h2>Ready to grade?</h2>
+        <p>Choose a quiz, enter the student's name, then scan. A successful scan can automatically save the score and the original captured paper.</p>
+        <label>Active quiz</label>
+        <select id="activeQuiz"></select>
+        <label>Student name / ID</label>
+        <input id="homeStudent" list="studentList" placeholder="Start typing learner name"><datalist id="studentList"></datalist>
+        <button class="hero-scan" id="goScan" style="margin-top:12px">📷 <span>SCAN</span> ANSWER SHEET</button>
+        <div class="notice good" style="margin-top:10px">
+          <b>Auto-save is ON.</b> After a successful scan, the result and captured image are stored on this device.
+        </div>
+      </div>
+
+      <div class="card third">
+        <h3>Phone App Mode</h3>
+        <p class="small">When served from HTTPS, you can add QuickGrade to your Home Screen and use it offline.</p>
+        <button class="btn primary install" id="installBtn">Install QuickGrade</button>
+        <div id="installText" class="notice small">Android Chrome: menu → <b>Add to Home screen / Install app</b>.<br>iPhone Safari: Share → <b>Add to Home Screen</b>.</div>
+        <div id="storageText" class="small muted" style="margin-top:10px">Checking storage…</div>
+        <div class="storagebar" style="margin-top:7px"><div id="storageFill"></div></div>
+      </div>
+
+      <div class="card half">
+        <h3>Fast workflow</h3>
+        <p class="small">Scan → automatic score → automatic local save → tap <b>Next Student</b> → scan again.</p>
+        <div class="notice">For reliable detection, use the answer sheet generated inside this app and keep all four black corner markers visible.</div>
+      </div>
+
+      <div class="card half">
+        <h3>Backup protection</h3>
+        <p class="small">Browser storage can be erased if site data is cleared. Export a full backup occasionally.</p>
+        <div class="toolbar">
+          <button class="btn primary" id="backupBtn">Backup Everything</button>
+          <label class="btn soft" style="cursor:pointer">Restore Backup<input type="file" id="restoreInput" accept=".json,application/json" style="display:none"></label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <section id="students" class="page">
+    <div class="grid">
+      <div class="card half">
+        <h2>Student Roster</h2>
+        <p class="small">The roster is saved automatically on this phone. Add learners one at a time or paste rows copied from Excel.</p>
+        <div class="roster-grid">
+          <div><label>Student ID / LRN</label><input id="studentIdEntry" placeholder="Optional"></div>
+          <div><label>Learner Name</label><input id="studentNameEntry" placeholder="Required"></div>
+          <div><label>Grade Level</label><input id="studentGradeEntry" value="Grade 2"></div>
+          <div><label>Section</label><input id="studentSectionEntry" value="JAA"></div>
+        </div>
+        <button class="btn primary" id="addStudentBtn" style="margin-top:10px">Add Student</button>
+        <hr>
+        <h3>Mass entry from Excel</h3>
+        <p class="small">Fill the Excel template, then copy the rows from Excel and paste them below. Columns: Student ID, Learner Name, Grade Level, Section.</p>
+        <textarea id="bulkStudents" placeholder="001[TAB]Juan Dela Cruz[TAB]Grade 2[TAB]JAA&#10;002[TAB]Maria Santos[TAB]Grade 2[TAB]JAA"></textarea>
+        <div class="toolbar">
+          <button class="btn primary" id="importPasteBtn">Import Pasted Rows</button>
+          <button class="btn soft" id="downloadCsvRosterBtn">Download CSV Template</button>
+        </div>
+      </div>
+      <div class="card half">
+        <div class="row">
+          <div><h3>Saved Learners</h3><div id="studentCount" class="small muted"></div></div>
+          <button class="btn danger right" id="clearStudentsBtn">Clear Roster</button>
+        </div>
+        <div style="overflow:auto;margin-top:10px;max-height:580px">
+          <table>
+            <thead><tr><th>ID</th><th>Name</th><th>Grade</th><th>Section</th><th></th></tr></thead>
+            <tbody id="studentBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="key" class="page">
+    <div class="grid">
+      <div class="card half">
+        <h2>Answer Key</h2>
+        <label>Quiz</label>
+        <select id="keyQuizSelect"></select>
+        <label>Quiz title</label>
+        <input id="quizTitle">
+        <label>Subject</label>
+        <input id="quizSubject" placeholder="e.g. Mathematics">
+        <div class="row">
+          <div style="flex:1;min-width:140px"><label>Questions</label><select id="questionCount">
+            <option>10</option><option>20</option><option>30</option><option>40</option><option selected>50</option><option>60</option>
+          </select></div>
+          <div style="flex:1;min-width:140px"><label>Choices</label><select id="choiceCount"><option value="4">A–D</option><option value="5">A–E</option></select></div>
+          <div style="flex:1;min-width:150px"><label>Passing score %</label><input id="passingPct" type="number" min="1" max="100" value="75"></div>
+        </div>
+        <div class="toolbar">
+          <button class="btn primary" id="saveQuizBtn">Save Quiz</button>
+          <button class="btn soft" id="newQuizBtn">New Quiz</button>
+          <button class="btn danger" id="deleteQuizBtn">Delete</button>
+        </div>
+      </div>
+      <div class="card half">
+        <h3>Compact ZipGrade-style bubbles</h3>
+        <div class="notice">Choose A–D or A–E for each quiz, then tap the correct answer for every item. The printable sheet uses the same small gray circle style and two-column layout.</div>
+        <div class="small muted" style="margin-top:10px"><span id="keyProgress"></span></div>
+      </div>
+      <div class="card">
+        <div id="keyGrid" class="key-grid"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="sheet" class="page">
+    <div class="card">
+      <div class="row">
+        <div><h2>Printable Answer Sheet</h2><div class="small muted">A4 portrait · cleaner ZipGrade-style bubbles with automatic A–D / A–E header</div></div>
+        <button class="btn primary right" onclick="window.print()">Print Answer Sheet</button>
+      </div>
+      <div class="sheet-wrap" style="margin-top:12px">
+        <svg id="sheetSvg" viewBox="0 0 1000 1400" xmlns="http://www.w3.org/2000/svg" aria-label="QuickGrade answer sheet"></svg>
+      </div>
+    </div>
+  </section>
+
+  <section id="scan" class="page">
+    <div class="grid">
+      <div class="card half">
+        <h2>Scan Student</h2>
+        <label>Quiz</label>
+        <select id="scanQuiz"></select>
+        <label>Student name / ID</label>
+        <input id="scanStudent" list="studentList" placeholder="Start typing learner name">
+        <div class="scan-actions">
+          <button class="action dark" id="liveCameraBtn">Open Camera</button>
+          <label class="filelabel">Take / Choose Photo<input id="photoInput" type="file" accept="image/*" capture="environment"></label>
+        </div>
+        <video id="video" class="cam" autoplay playsinline></video>
+        <button class="action primary" id="captureBtn" style="display:none;width:100%;margin-top:8px">Capture & Grade</button>
+        <button class="action soft" id="stopCamBtn" style="display:none;width:100%;margin-top:7px">Close Camera</button>
+        <div id="scanStatus" class="notice" style="margin-top:10px">Use the generated QuickGrade answer sheet. Keep the whole page and all four black corner markers in the photo.</div>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:11px">
+          <input id="autoSave" type="checkbox" checked style="width:auto"> Auto-save score + original image
+        </label>
+      </div>
+
+      <div class="card half">
+        <h3>Detection Preview</h3>
+        <canvas id="scanCanvas" width="700" height="950"></canvas>
+        <div class="small muted" style="margin-top:6px">Green = selected bubble · yellow = detected sheet alignment.</div>
+      </div>
+
+      <div class="card" id="resultCard">
+        <div id="resultArea" class="empty">No scan yet.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="history" class="page">
+    <div class="grid">
+      <div class="card twothird">
+        <div class="row">
+          <div><h2>Saved Scans</h2><div class="small muted">Scores and original captured images stored locally on this device.</div></div>
+          <button class="btn primary right" id="csvBtn">Export CSV</button>
+          <button class="btn danger" id="clearHistoryBtn">Clear</button>
+        </div>
+        <div style="overflow:auto;margin-top:10px">
+          <table>
+            <thead><tr><th>Date</th><th>Student</th><th>Quiz</th><th>Score</th><th>%</th><th>Scan</th></tr></thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card third">
+        <h3>Item Analysis</h3>
+        <label>Quiz</label>
+        <select id="analysisQuiz"></select>
+        <div id="analysisBox" class="small muted" style="margin-top:10px">No scans yet.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="reports" class="page">
+    <div class="grid">
+      <div class="card half">
+        <h2>MPS / Mean / SD Report</h2>
+        <p class="small">QuickGrade calculates these automatically from the saved raw scores of each quiz.</p>
+        <label>Report heading</label>
+        <input id="reportHeading" value="1st Trimester MPS">
+        <label>Assessment</label>
+        <input id="reportAssessment" value="1st Summative Test">
+        <label>Grade / Section</label>
+        <input id="reportGradeSection" value="Grade 2 – JAA">
+        <div class="roster-grid">
+          <div><label>Prepared by</label><input id="reportPrepared" value="JOHN VINCENT A. AVERIA"></div>
+          <div><label>Position</label><input id="reportPreparedRole" value="Teacher I"></div>
+          <div><label>Noted by</label><input id="reportNoted" value="SHIELA MARIE D. DAÑO"></div>
+          <div><label>Position</label><input id="reportNotedRole" value="Principal I"></div>
+        </div>
+        <label>Include subjects/quizzes</label>
+        <div id="reportQuizChecks"></div>
+        <div class="toolbar">
+          <button class="btn primary" id="downloadWordBtn">Download Word (.doc)</button>
+          <button class="btn soft" id="refreshReportBtn">Refresh Calculations</button>
+        </div>
+        <div class="notice good" style="margin-top:10px"><b>No PDF.</b> The report downloads as a Word-compatible <b>.doc</b> file for editing and printing.</div>
+      </div>
+      <div class="card half">
+        <h3>Automatic Results</h3>
+        <div id="reportSummary" class="report-table"></div>
+        <div class="notice" style="margin-top:10px">
+          <b>MPS</b> = Mean score ÷ Highest Possible Score × 100.<br>
+          <b>Mean</b> = average raw score.<br>
+          <b>SD</b> = population standard deviation of the class scores.
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div id="imageModal" class="modal">
+  <div class="modal-card">
+    <button class="closex" id="closeModal">Close</button>
+    <h3 style="padding:7px 4px 10px">Saved Answer Sheet</h3>
+    <img id="modalImg" alt="Saved scan">
+  </div>
+</div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const DEFAULT_LETTERS = ['A','B','C','D'];
+function quizLetters(q){
+  return (q && +q.choiceCount===5) ? ['A','B','C','D','E'] : ['A','B','C','D'];
+}
+const META_KEY = 'quickgrade_offline_v3';
+const DB_NAME = 'quickgrade_images_v3';
+const DB_STORE = 'images';
+
+const state = {
+  quizzes: [],
+  activeQuizId: null,
+  history: [],
+  students: [],
+  stream: null,
+  currentBlob: null,
+  currentImage: null,
+  currentScan: null,
+  deferredInstall: null
+};
+
+function uid(prefix='id'){ return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8); }
+function esc(s=''){ return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+function defaultQuiz(){
+  return {id:uid('quiz'), title:'My Quiz', subject:'Subject', n:50, choiceCount:4, passing:75, key:Array(50).fill(null), created:new Date().toISOString()};
+}
+function loadMeta(){
+  try{
+    const x=JSON.parse(localStorage.getItem(META_KEY)||'null');
+    if(x && Array.isArray(x.quizzes) && x.quizzes.length){
+      state.quizzes=x.quizzes;
+      state.activeQuizId=x.activeQuizId || x.quizzes[0].id;
+      state.history=Array.isArray(x.history)?x.history:[];
+      state.students=Array.isArray(x.students)?x.students:[];
+      state.quizzes.forEach(q=>{ if(!q.subject) q.subject=q.title||'Subject'; if(!q.choiceCount) q.choiceCount=4; });
+      return;
+    }
+  }catch(e){}
+  const q=defaultQuiz(); state.quizzes=[q]; state.activeQuizId=q.id; state.history=[]; state.students=[]; saveMeta();
+}
+function savedPulse(message='Saved locally ✓'){
+  const b=$('#saveBadge'); if(!b)return;
+  b.innerHTML='<b>✓</b> '+message; b.style.opacity='1';
+  clearTimeout(savedPulse.t);
+  savedPulse.t=setTimeout(()=>{b.innerHTML='<b>✓</b> Auto-save active';b.style.opacity='.88'},1400);
+}
+function saveMeta(){
+  localStorage.setItem(META_KEY, JSON.stringify({
+    quizzes:state.quizzes,
+    activeQuizId:state.activeQuizId,
+    history:state.history,
+    students:state.students
+  }));
+  savedPulse();
+}
+function getQuiz(id=state.activeQuizId){ return state.quizzes.find(q=>q.id===id) || state.quizzes[0]; }
+
+function fillQuizSelect(sel, value){
+  const s=$(sel); if(!s)return;
+  s.innerHTML=state.quizzes.map(q=>`<option value="${q.id}">${esc(q.title)}</option>`).join('');
+  s.value=value || state.activeQuizId;
+}
+function refreshSelectors(){
+  ['#activeQuiz','#keyQuizSelect','#scanQuiz','#analysisQuiz'].forEach(s=>fillQuizSelect(s));
+  $('#activeQuiz').value=state.activeQuizId;
+  $('#keyQuizSelect').value=state.activeQuizId;
+  $('#scanQuiz').value=state.activeQuizId;
+  $('#analysisQuiz').value=state.activeQuizId;
+}
+function switchPage(id){
+  $$('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));
+  $$('.page').forEach(p=>p.classList.toggle('active',p.id===id));
+  if(id==='students') renderStudents();
+  if(id==='key') renderKeyEditor();
+  if(id==='sheet') renderSheet();
+  if(id==='history') renderHistory();
+  if(id==='reports') renderReports();
+}
+$$('.nav button').forEach(b=>b.onclick=()=>switchPage(b.dataset.page));
+
+$('#activeQuiz').onchange=e=>{
+  state.activeQuizId=e.target.value; saveMeta(); refreshSelectors();
+};
+$('#goScan').onclick=()=>{
+  state.activeQuizId=$('#activeQuiz').value;
+  $('#scanQuiz').value=state.activeQuizId;
+  $('#scanStudent').value=$('#homeStudent').value;
+  saveMeta(); switchPage('scan');
+};
+
+function renderKeyEditor(){
+  const q=getQuiz($('#keyQuizSelect').value || state.activeQuizId);
+  $('#quizTitle').value=q.title;
+  $('#quizSubject').value=q.subject||q.title;
+  $('#questionCount').value=String(q.n);
+  $('#choiceCount').value=String(q.choiceCount||4);
+  $('#passingPct').value=q.passing||75;
+  const g=$('#keyGrid'); g.innerHTML='';
+  for(let i=0;i<q.n;i++){
+    const row=document.createElement('div'); row.className='key-item';
+    row.innerHTML=`<div class="key-num">${i+1}</div><div class="bubbles">${
+      quizLetters(q).map(c=>`<button class="bubble-btn ${q.key[i]===c?'on':''}" data-i="${i}" data-c="${c}">${c}</button>`).join('')
+    }</div>`;
+    g.appendChild(row);
+  }
+  g.querySelectorAll('.bubble-btn').forEach(b=>b.onclick=()=>{
+    q.key[+b.dataset.i]=b.dataset.c; saveMeta(); renderKeyEditor();
+  });
+  const done=q.key.filter(Boolean).length;
+  $('#keyProgress').textContent=`${done}/${q.n} correct answers recorded${done<q.n?' · '+(q.n-done)+' blank':''}`;
+}
+$('#keyQuizSelect').onchange=e=>{state.activeQuizId=e.target.value;saveMeta();refreshSelectors();renderKeyEditor();renderSheet();}
+$('#questionCount').onchange=e=>{
+  const q=getQuiz($('#keyQuizSelect').value);
+  const n=+e.target.value, old=q.key.slice();
+  q.n=n;q.key=Array(n).fill(null);
+  for(let i=0;i<Math.min(old.length,n);i++)q.key[i]=old[i];
+  saveMeta();renderKeyEditor();renderSheet();
+};
+$('#choiceCount').onchange=e=>{
+  const q=getQuiz($('#keyQuizSelect').value);
+  q.choiceCount=+e.target.value===5?5:4;
+  const allowed=quizLetters(q);
+  q.key=q.key.map(a=>allowed.includes(a)?a:null);
+  saveMeta();renderKeyEditor();renderSheet();
+};
+$('#saveQuizBtn').onclick=()=>{
+  const q=getQuiz($('#keyQuizSelect').value);
+  q.title=$('#quizTitle').value.trim()||'Untitled Quiz';
+  q.subject=$('#quizSubject').value.trim()||q.title;
+  q.choiceCount=+$('#choiceCount').value===5?5:4;
+  q.passing=Math.max(1,Math.min(100,+$('#passingPct').value||75));
+  state.activeQuizId=q.id;saveMeta();refreshSelectors();renderKeyEditor();
+  $('#saveQuizBtn').textContent='Saved ✓';setTimeout(()=>$('#saveQuizBtn').textContent='Save Quiz',1000);
+};
+$('#newQuizBtn').onclick=()=>{
+  const q=defaultQuiz();q.title='New Quiz';q.subject='Subject';q.choiceCount=4;state.quizzes.push(q);state.activeQuizId=q.id;saveMeta();refreshSelectors();renderKeyEditor();renderSheet();
+};
+$('#deleteQuizBtn').onclick=()=>{
+  if(state.quizzes.length===1)return alert('Keep at least one quiz.');
+  const q=getQuiz($('#keyQuizSelect').value);
+  if(!confirm(`Delete "${q.title}"? Saved scan history will remain.`))return;
+  state.quizzes=state.quizzes.filter(x=>x.id!==q.id);state.activeQuizId=state.quizzes[0].id;saveMeta();refreshSelectors();renderKeyEditor();renderSheet();
+};
+
+
+// ---------- Student roster ----------
+function renderStudentDatalist(){
+  const dl=$('#studentList'); if(!dl)return;
+  dl.innerHTML=state.students.map(s=>`<option value="${esc(s.name)}">${esc(s.id||'')} ${esc(s.section||'')}</option>`).join('');
+}
+function renderStudents(){
+  renderStudentDatalist();
+  const body=$('#studentBody'),count=$('#studentCount');
+  count.textContent=`${state.students.length} learner${state.students.length===1?'':'s'} saved locally`;
+  body.innerHTML=state.students.length?state.students.map(s=>`
+    <tr><td>${esc(s.id||'')}</td><td><b>${esc(s.name)}</b></td><td>${esc(s.grade||'')}</td><td>${esc(s.section||'')}</td>
+    <td><button class="btn danger deleteStudent" data-id="${s.uid}" style="padding:6px 8px">×</button></td></tr>`).join(''):
+    '<tr><td colspan="5" class="muted">No learners yet. Add manually or paste from Excel.</td></tr>';
+  body.querySelectorAll('.deleteStudent').forEach(b=>b.onclick=()=>{
+    state.students=state.students.filter(s=>s.uid!==b.dataset.id);saveMeta();renderStudents();
+  });
+}
+function addStudentRecord(id,name,grade,section){
+  name=(name||'').trim(); if(!name)return false;
+  const existing=state.students.find(s=>(id&&s.id===id.trim()) || s.name.toLowerCase()===name.toLowerCase());
+  if(existing){
+    existing.id=(id||existing.id||'').trim(); existing.name=name;
+    existing.grade=(grade||existing.grade||'').trim();existing.section=(section||existing.section||'').trim();
+  }else{
+    state.students.push({uid:uid('stu'),id:(id||'').trim(),name,grade:(grade||'').trim(),section:(section||'').trim()});
+  }
+  return true;
+}
+$('#addStudentBtn').onclick=()=>{
+  if(!addStudentRecord($('#studentIdEntry').value,$('#studentNameEntry').value,$('#studentGradeEntry').value,$('#studentSectionEntry').value))
+    return alert('Enter the learner name.');
+  $('#studentIdEntry').value='';$('#studentNameEntry').value='';saveMeta();renderStudents();$('#studentNameEntry').focus();
+};
+$('#importPasteBtn').onclick=()=>{
+  const raw=$('#bulkStudents').value.trim();if(!raw)return alert('Paste rows copied from Excel first.');
+  let added=0;
+  raw.split(/\r?\n/).forEach(line=>{
+    if(!line.trim())return;
+    const cells=line.includes('\t')?line.split('\t'):line.split(',');
+    const c=cells.map(x=>x.trim().replace(/^"|"$/g,''));
+    if(/student id/i.test(c[0]||'') || /learner name/i.test(c[1]||''))return;
+    if(addStudentRecord(c[0],c[1],c[2]||'Grade 2',c[3]||'JAA'))added++;
+  });
+  saveMeta();renderStudents();$('#bulkStudents').value='';alert(`${added} learner row(s) imported/updated.`);
+};
+$('#downloadCsvRosterBtn').onclick=()=>{
+  const csv='Student ID,Learner Name,Grade Level,Section,Sex (Optional),Active\r\n001,Juan Dela Cruz,Grade 2,JAA,,Yes\r\n';
+  downloadBlob(new Blob([csv],{type:'text/csv'}),'QuickGrade_Student_Roster_Template.csv');
+};
+$('#clearStudentsBtn').onclick=()=>{
+  if(confirm('Clear the entire saved student roster?')){state.students=[];saveMeta();renderStudents();}
+};
+
+// ---------- Exact printable OMR layout ----------
+const TEMPLATE={w:1000,h:1400, markerCenters:[
+  {x:45,y:45},{x:955,y:45},{x:955,y:1355},{x:45,y:1355}
+]};
+function bubbleLayout(q){
+  const n=q.n, letters=quizLetters(q), per=Math.ceil(n/2);
+  const rows=[];
+  for(let i=0;i<n;i++){
+    const col=i<per?0:1;
+    const r=col===0?i:i-per;
+    const startY=255, step=39;
+    const y=startY+r*step;
+    const baseX=col===0?185:628;
+    const gap=43;
+    rows.push(letters.map((label,j)=>({x:baseX+j*gap,y,label})));
+  }
+  return rows;
+}
+function renderSheet(){
+  const q=getQuiz();
+  const svg=$('#sheetSvg');
+  const per=Math.ceil(q.n/2);
+  const rows=bubbleLayout(q);
+  let s=`
+  <rect x="0" y="0" width="1000" height="1400" fill="white"/>
+  <rect x="26" y="26" width="22" height="22" fill="#000"/>
+  <rect x="952" y="26" width="22" height="22" fill="#000"/>
+  <rect x="952" y="1352" width="22" height="22" fill="#000"/>
+  <rect x="26" y="1352" width="22" height="22" fill="#000"/>
+
+  <text x="500" y="70" text-anchor="middle" font-family="Arial,sans-serif" font-size="24" font-weight="700" fill="#222">${esc(q.title)}</text>
+  <text x="500" y="95" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#777">QuickGrade Bubble Answer Sheet</text>
+
+  <text x="88" y="136" font-family="Arial,sans-serif" font-size="13" fill="#666">Name</text>
+  <line x1="128" y1="139" x2="470" y2="139" stroke="#bfbfbf" stroke-width="1"/>
+  <text x="540" y="136" font-family="Arial,sans-serif" font-size="13" fill="#666">Section</text>
+  <line x1="586" y1="139" x2="790" y2="139" stroke="#bfbfbf" stroke-width="1"/>
+  <text x="810" y="136" font-family="Arial,sans-serif" font-size="13" fill="#666">Score</text>
+  <line x1="845" y1="139" x2="920" y2="139" stroke="#bfbfbf" stroke-width="1"/>
+
+  <line x1="500" y1="182" x2="500" y2="1245" stroke="#f1f1f1" stroke-width="1"/>
+  <text x="230" y="208" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#999">Shade one answer only</text>
+  <text x="710" y="208" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#999">Shade one answer only</text>
+  ${quizLetters(q).map((ch,j)=>`<text x="${185+j*43}" y="230" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="700" fill="#777">${ch}</text>`).join('')}
+  ${quizLetters(q).map((ch,j)=>`<text x="${628+j*43}" y="230" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="700" fill="#777">${ch}</text>`).join('')}
+  `;
+  rows.forEach((arr,i)=>{
+    const col=i<per?0:1;
+    const numX=col===0?92:535;
+    const y=arr[0].y;
+    s+=`<text x="${numX}" y="${y+4}" text-anchor="end" font-family="Arial,sans-serif" font-size="14" font-weight="700" fill="#333">${i+1}</text>`;
+    arr.forEach(p=>{
+      s+=`<circle cx="${p.x}" cy="${p.y}" r="13.5" fill="#fff" stroke="#bebebe" stroke-width="1.5"/>
+      <text x="${p.x}" y="${p.y+3.8}" text-anchor="middle" font-family="Arial,sans-serif" font-size="10.5" font-weight="700" fill="#b0b0b0">${p.label}</text>`;
+    });
+  });
+  s+=`
+  <text x="500" y="1310" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#888">
+    Use dark shading and keep all four black corner squares visible when scanning.
+  </text>`;
+  svg.innerHTML=s;
+}
+
+// ---------- IndexedDB image storage ----------
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const r=indexedDB.open(DB_NAME,1);
+    r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(DB_STORE))r.result.createObjectStore(DB_STORE)};
+    r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);
+  });
+}
+async function dbPut(id,blob){
+  const db=await openDB();return new Promise((resolve,reject)=>{
+    const tx=db.transaction(DB_STORE,'readwrite');tx.objectStore(DB_STORE).put(blob,id);
+    tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+  });
+}
+async function dbGet(id){
+  const db=await openDB();return new Promise((resolve,reject)=>{
+    const r=db.transaction(DB_STORE,'readonly').objectStore(DB_STORE).get(id);
+    r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error);
+  });
+}
+async function dbDelete(id){
+  const db=await openDB();return new Promise((resolve,reject)=>{
+    const tx=db.transaction(DB_STORE,'readwrite');tx.objectStore(DB_STORE).delete(id);
+    tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+  });
+}
+async function dbClear(){
+  const db=await openDB();return new Promise((resolve,reject)=>{
+    const tx=db.transaction(DB_STORE,'readwrite');tx.objectStore(DB_STORE).clear();
+    tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+  });
+}
+async function dbEntries(){
+  const db=await openDB();return new Promise((resolve,reject)=>{
+    const tx=db.transaction(DB_STORE,'readonly'), store=tx.objectStore(DB_STORE);
+    const req=store.openCursor(), out=[];
+    req.onsuccess=e=>{const c=e.target.result;if(c){out.push([c.key,c.value]);c.continue()}else resolve(out)};
+    req.onerror=()=>reject(req.error);
+  });
+}
+
+// ---------- Camera/photo ----------
+$('#scanQuiz').onchange=e=>{state.activeQuizId=e.target.value;saveMeta();refreshSelectors();};
+$('#photoInput').onchange=async e=>{
+  const f=e.target.files[0]; if(!f)return;
+  state.currentBlob=f; const img=await blobToImage(f); state.currentImage=img; await scanImage(img);
+};
+function blobToImage(blob){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();const u=URL.createObjectURL(blob);
+    img.onload=()=>{URL.revokeObjectURL(u);resolve(img)};img.onerror=reject;img.src=u;
+  });
+}
+$('#liveCameraBtn').onclick=async()=>{
+  try{
+    state.stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false
+    });
+    $('#video').srcObject=state.stream;$('#video').style.display='block';
+    $('#captureBtn').style.display='block';$('#stopCamBtn').style.display='block';
+    setStatus('Camera ready. Hold the phone above the whole sheet, then tap Capture & Grade.');
+  }catch(e){
+    setStatus('Live camera could not open here. Use “Take / Choose Photo”; on phones it can open the rear camera directly.',true);
+  }
+};
+$('#captureBtn').onclick=()=>{
+  const v=$('#video'); if(!v.videoWidth)return;
+  const c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;
+  c.getContext('2d').drawImage(v,0,0);
+  c.toBlob(async blob=>{
+    state.currentBlob=blob;const img=await blobToImage(blob);state.currentImage=img;await scanImage(img);stopCamera();
+  },'image/jpeg',.94);
+};
+$('#stopCamBtn').onclick=stopCamera;
+function stopCamera(){
+  if(state.stream){state.stream.getTracks().forEach(t=>t.stop());state.stream=null}
+  $('#video').style.display='none';$('#captureBtn').style.display='none';$('#stopCamBtn').style.display='none';
+}
+function setStatus(t,bad=false,good=false){
+  const el=$('#scanStatus');el.textContent=t;el.className='notice'+(bad?' bad':good?' good':'');
+}
+
+// ---------- OMR scanner ----------
+function makeCanvas(img,maxDim=1500){
+  const iw=img.naturalWidth||img.width, ih=img.naturalHeight||img.height;
+  const scale=Math.min(1,maxDim/Math.max(iw,ih));
+  const c=document.createElement('canvas');c.width=Math.round(iw*scale);c.height=Math.round(ih*scale);
+  c.getContext('2d').drawImage(img,0,0,c.width,c.height);return c;
+}
+function lum(d,i){return .299*d[i]+.587*d[i+1]+.114*d[i+2]}
+function integralDark(imageData,w,h,threshold=95){
+  const d=imageData.data, W=w+1, I=new Uint32Array((w+1)*(h+1));
+  for(let y=1;y<=h;y++){
+    let row=0;
+    for(let x=1;x<=w;x++){
+      const i=((y-1)*w+(x-1))*4;row += lum(d,i)<threshold?1:0;
+      I[y*W+x]=I[(y-1)*W+x]+row;
+    }
+  }return I;
+}
+function rectSum(I,w,x0,y0,x1,y1){
+  const W=w+1;x0=Math.max(0,x0|0);y0=Math.max(0,y0|0);x1=Math.min(w,x1|0);y1=Math.min((I.length/W)-1,y1|0);
+  return I[y1*W+x1]-I[y0*W+x1]-I[y1*W+x0]+I[y0*W+x0];
+}
+function findMarkers(data,w,h){
+  const I=integralDark(data,w,h,100);
+  const regions=[[0,0,.28,.28],[.72,0,1,.28],[.72,.72,1,1],[0,.72,.28,1]];
+  const out=[];
+  for(const [rx0,ry0,rx1,ry1] of regions){
+    const x0=Math.floor(rx0*w),y0=Math.floor(ry0*h),x1=Math.floor(rx1*w),y1=Math.floor(ry1*h);
+    let best=null;
+    for(const frac of [.018,.024,.032,.042,.055]){
+      const s=Math.max(9,Math.floor(Math.min(w,h)*frac));
+      const stride=Math.max(3,Math.floor(s*.23));
+      for(let y=y0;y+s<y1;y+=stride)for(let x=x0;x+s<x1;x+=stride){
+        const dark=rectSum(I,w,x,y,x+s,y+s),ratio=dark/(s*s);
+        if(ratio<.58)continue;
+        // reward density and square area, mild preference toward outer corner
+        const score=ratio*s*s;
+        if(!best||score>best.score)best={x:x+s/2,y:y+s/2,s,score};
+      }
+    }
+    if(!best)return null;
+    // centroid refinement
+    const d=data.data,rad=best.s*.85;let sx=0,sy=0,n=0;
+    for(let y=Math.max(0,Math.floor(best.y-rad));y<Math.min(h,Math.ceil(best.y+rad));y++){
+      for(let x=Math.max(0,Math.floor(best.x-rad));x<Math.min(w,Math.ceil(best.x+rad));x++){
+        const i=(y*w+x)*4;if(lum(d,i)<100){sx+=x;sy+=y;n++}
+      }
+    }
+    out.push(n?{x:sx/n,y:sy/n}:{x:best.x,y:best.y});
+  }
+  return out;
+}
+function solve(A,b){
+  const n=b.length;
+  for(let i=0;i<n;i++){
+    let m=i;for(let r=i+1;r<n;r++)if(Math.abs(A[r][i])>Math.abs(A[m][i]))m=r;
+    [A[i],A[m]]=[A[m],A[i]];[b[i],b[m]]=[b[m],b[i]];
+    const p=A[i][i];if(Math.abs(p)<1e-11)return null;
+    for(let c=i;c<n;c++)A[i][c]/=p;b[i]/=p;
+    for(let r=0;r<n;r++)if(r!==i){
+      const f=A[r][i];for(let c=i;c<n;c++)A[r][c]-=f*A[i][c];b[r]-=f*b[i];
+    }
+  }return b;
+}
+function homography(src,dst){
+  const A=[],b=[];
+  for(let i=0;i<4;i++){
+    const {x,y}=src[i],u=dst[i].x,v=dst[i].y;
+    A.push([x,y,1,0,0,0,-u*x,-u*y]);b.push(u);
+    A.push([0,0,0,x,y,1,-v*x,-v*y]);b.push(v);
+  }
+  const h=solve(A,b);return h?[...h,1]:null;
+}
+function mapH(H,x,y){
+  const z=H[6]*x+H[7]*y+H[8];return {x:(H[0]*x+H[1]*y+H[2])/z,y:(H[3]*x+H[4]*y+H[5])/z};
+}
+function fillScore(imgData,w,h,H,cx,cy){
+  const d=imgData.data;let darkness=0,count=0,darkPx=0;
+  // inner disk only: avoids gray circle outline; printed light-gray letter contributes little.
+  const r=10;
+  for(let yy=-r;yy<=r;yy+=2)for(let xx=-r;xx<=r;xx+=2){
+    if(xx*xx+yy*yy>r*r)continue;
+    const p=mapH(H,cx+xx,cy+yy),x=Math.round(p.x),y=Math.round(p.y);
+    if(x<0||y<0||x>=w||y>=h)continue;
+    const L=lum(d,(y*w+x)*4);darkness+=(255-L)/255;if(L<145)darkPx++;count++;
+  }
+  return count?(.55*(darkness/count)+.45*(darkPx/count)):0;
+}
+async function scanImage(img){
+  const q=getQuiz($('#scanQuiz').value);
+  if(q.key.every(x=>!x)){setStatus('This quiz has no answer key yet. Record the correct answers first.',true);return}
+  setStatus('Reading the sheet…');
+  await new Promise(r=>setTimeout(r,25));
+  const work=makeCanvas(img),ctx=work.getContext('2d',{willReadFrequently:true});
+  const data=ctx.getImageData(0,0,work.width,work.height);
+  const markers=findMarkers(data,work.width,work.height);
+  drawPreview(work,markers,null);
+  if(!markers){
+    state.currentScan=null;
+    setStatus('I could not find all four black corner markers. Retake the photo with the entire page visible and better lighting.',true);
+    $('#resultArea').innerHTML='<div class="notice bad"><b>Scan failed.</b> Make sure none of the four black corner squares are cropped.</div>';
+    return;
+  }
+  const H=homography(TEMPLATE.markerCenters,markers);
+  if(!H){setStatus('The sheet could not be aligned. Retake the photo more directly above the page.',true);return}
+  const layout=bubbleLayout(q),answers=[],confidence=[];
+  layout.forEach(arr=>{
+    const scores=arr.map(p=>fillScore(data,work.width,work.height,H,p.x,p.y));
+    const order=scores.map((v,i)=>({v,i})).sort((a,b)=>b.v-a.v);
+    let ans=null,conf='blank';
+    if(order[0].v>=.20){
+      if(order[1].v>=.18 && order[0].v-order[1].v<.055){ans='MULTI';conf='multi'}
+      else {ans=quizLetters(q)[order[0].i];conf=order[0].v>=.31?'high':'low'}
+    }
+    answers.push(ans);confidence.push({scores,level:conf});
+  });
+  state.currentScan={quizId:q.id,answers,confidence,H,layout,work};
+  drawPreview(work,markers,state.currentScan);
+  renderResult();
+  setStatus('Scan complete. Review any wrong or blank items; you can tap a bubble below to correct a misread.',false,true);
+  if($('#autoSave').checked)await saveCurrentScan(true);
+}
+function drawPreview(work,markers,scan){
+  const c=$('#scanCanvas'),max=850,s=Math.min(1,max/work.width);
+  c.width=Math.round(work.width*s);c.height=Math.round(work.height*s);
+  const g=c.getContext('2d');g.drawImage(work,0,0,c.width,c.height);
+  if(markers){
+    g.strokeStyle='#ffd400';g.lineWidth=3;
+    markers.forEach(p=>{g.beginPath();g.arc(p.x*s,p.y*s,10,0,Math.PI*2);g.stroke()});
+  }
+  if(scan){
+    scan.layout.forEach((arr,i)=>arr.forEach((p,j)=>{
+      const m=mapH(scan.H,p.x,p.y);g.strokeStyle=scan.answers[i]===quizLetters(getQuiz(scan.quizId))[j]?'#00e676':'rgba(255,216,0,.7)';
+      g.lineWidth=scan.answers[i]===DEFAULT_LETTERS[j]?3:1.3;g.beginPath();g.arc(m.x*s,m.y*s,8,0,Math.PI*2);g.stroke();
+    }));
+  }
+}
+function gradeCurrent(){
+  const s=state.currentScan,q=getQuiz(s.quizId);let score=0,total=0;
+  const items=s.answers.map((a,i)=>{
+    const key=q.key[i];if(!key)return {i,status:'unkeyed',key,ans:a};
+    total++;const ok=a===key;if(ok)score++;
+    return {i,status:ok?'correct':(!a||a==='MULTI'?'blank':'wrong'),key,ans:a};
+  });
+  return {score,total,pct:total?Math.round(score/total*100):0,items,q};
+}
+function renderResult(){
+  if(!state.currentScan)return;
+  const g=gradeCurrent(),pass=g.pct>=g.q.passing;
+  $('#resultArea').innerHTML=`
+    <div class="row">
+      <div><div class="small muted">SCORE</div><div class="score">${g.score}<span style="font-size:22px">/${g.total}</span></div></div>
+      <div style="margin-left:12px"><div class="stat">${g.pct}%</div><div class="${pass?'':'muted'}">${pass?'Passed':'Below '+g.q.passing+'%'}</div></div>
+      <button class="btn dark right" id="saveResultBtn">Save Now</button>
+      <button class="btn primary" id="nextStudentBtn">Next Student</button>
+    </div>
+    <div class="result-grid">${g.items.map(it=>`
+      <div class="result-item ${it.status}">
+        <b>#${it.i+1}</b><div>${it.ans||'—'} <span class="small muted">/ ${it.key||'—'}</span></div>
+        <div class="answer-edit">${quizLetters(g.q).map(c=>`<button data-i="${it.i}" data-c="${c}" class="${it.ans===c?'on':''}">${c}</button>`).join('')}</div>
+      </div>`).join('')}</div>
+    <div class="small muted" style="margin-top:9px">Tap A/B/C/D under any item if the scanner misread it. The score updates immediately.</div>`;
+  $('#resultArea').querySelectorAll('.answer-edit button').forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.i,c=b.dataset.c;
+    state.currentScan.answers[i]=state.currentScan.answers[i]===c?null:c;
+    renderResult();
+  });
+  $('#saveResultBtn').onclick=()=>saveCurrentScan(false);
+  $('#nextStudentBtn').onclick=nextStudent;
+}
+async function saveCurrentScan(auto=false){
+  if(!state.currentScan)return;
+  const g=gradeCurrent(),student=$('#scanStudent').value.trim()||'Unnamed Student';
+  // Avoid duplicate auto-save from same scan unless manually edited and explicitly saved.
+  if(auto && state.currentScan.savedId)return;
+  const id=state.currentScan.savedId || uid('scan');
+  const entry={
+    id,ts:new Date().toISOString(),quizId:g.q.id,quizTitle:g.q.title,student,
+    score:g.score,total:g.total,pct:g.pct,answers:state.currentScan.answers.slice(),key:g.q.key.slice(),hasImage:!!state.currentBlob
+  };
+  const idx=state.history.findIndex(h=>h.id===id);
+  if(idx>=0)state.history[idx]=entry;else state.history.unshift(entry);
+  if(state.currentBlob)await dbPut(id,state.currentBlob);
+  state.currentScan.savedId=id;saveMeta();renderHistory();updateStorage();
+  const b=$('#saveResultBtn');if(b){b.textContent=auto?'Auto-saved ✓':'Saved ✓';}
+}
+function nextStudent(){
+  $('#scanStudent').value='';$('#homeStudent').value='';$('#photoInput').value='';
+  state.currentBlob=null;state.currentImage=null;state.currentScan=null;
+  $('#resultArea').innerHTML='<div class="empty">Ready for the next student.</div>';
+  const c=$('#scanCanvas'),g=c.getContext('2d');g.fillStyle='#111';g.fillRect(0,0,c.width,c.height);
+  setStatus('Next student ready. Enter the name, then scan the answer sheet.');
+  $('#scanStudent').focus();
+}
+
+// ---------- History ----------
+function renderHistory(){
+  fillQuizSelect('#analysisQuiz',$('#analysisQuiz').value||state.activeQuizId);
+  const b=$('#historyBody');
+  if(!state.history.length){b.innerHTML='<tr><td colspan="6" class="muted">No saved scans yet.</td></tr>';renderAnalysis();return}
+  b.innerHTML=state.history.map(h=>`
+    <tr>
+      <td>${new Date(h.ts).toLocaleString()}</td><td>${esc(h.student)}</td><td>${esc(h.quizTitle)}</td>
+      <td><b>${h.score}/${h.total}</b></td><td>${h.pct}%</td>
+      <td>${h.hasImage?`<button class="btn soft viewScan" data-id="${h.id}" style="padding:7px 9px">View</button>`:'—'}</td>
+    </tr>`).join('');
+  b.querySelectorAll('.viewScan').forEach(x=>x.onclick=()=>showImage(x.dataset.id));
+  renderAnalysis();
+}
+async function showImage(id){
+  const blob=await dbGet(id);if(!blob)return alert('The locally saved image is unavailable.');
+  const u=URL.createObjectURL(blob);$('#modalImg').src=u;$('#imageModal').classList.add('open');
+  $('#modalImg').onload=()=>setTimeout(()=>URL.revokeObjectURL(u),1000);
+}
+$('#closeModal').onclick=()=>$('#imageModal').classList.remove('open');
+$('#imageModal').onclick=e=>{if(e.target===$('#imageModal'))$('#imageModal').classList.remove('open')};
+$('#analysisQuiz').onchange=renderAnalysis;
+function renderAnalysis(){
+  const id=$('#analysisQuiz').value||state.activeQuizId, scans=state.history.filter(h=>h.quizId===id),box=$('#analysisBox');
+  if(!scans.length){box.innerHTML='No saved scans for this quiz.';return}
+  const q=state.quizzes.find(x=>x.id===id),miss=Array(q?.n||0).fill(0),attempt=Array(q?.n||0).fill(0);
+  scans.forEach(h=>h.answers.forEach((a,i)=>{if(h.key[i]){attempt[i]++;if(a!==h.key[i])miss[i]++}}));
+  const rows=miss.map((m,i)=>({i,m,n:attempt[i],p:attempt[i]?Math.round(m/attempt[i]*100):0})).sort((a,b)=>b.p-a.p);
+  const avg=Math.round(scans.reduce((s,h)=>s+h.pct,0)/scans.length);
+  box.innerHTML=`<div class="notice good"><b>${scans.length}</b> scans · average <b>${avg}%</b></div>`+
+  rows.slice(0,10).map(r=>`<div style="margin:10px 0"><div class="row"><b>#${r.i+1}</b><span class="right">${r.p}% missed</span></div><div class="storagebar"><div style="width:${r.p}%"></div></div></div>`).join('');
+}
+$('#csvBtn').onclick=()=>{
+  if(!state.history.length)return alert('No saved scans yet.');
+  const rows=[['Date','Student','Quiz','Score','Total','Percent','Answers']];
+  state.history.forEach(h=>rows.push([h.ts,h.student,h.quizTitle,h.score,h.total,h.pct,h.answers.map(a=>a||'').join(' ')]));
+  downloadBlob(new Blob([rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n')],{type:'text/csv'}),'QuickGrade_Scores.csv');
+};
+$('#clearHistoryBtn').onclick=async()=>{
+  if(!confirm('Delete ALL saved scores and locally stored scan images?'))return;
+  state.history=[];saveMeta();await dbClear();renderHistory();updateStorage();
+};
+
+
+// ---------- MPS / Mean / SD Word report ----------
+function statsForQuiz(q){
+  const scans=state.history.filter(h=>h.quizId===q.id && Number.isFinite(+h.score));
+  if(!scans.length)return {n:0,mean:null,mps:null,sd:null};
+  const scores=scans.map(h=>+h.score);
+  const mean=scores.reduce((a,b)=>a+b,0)/scores.length;
+  const variance=scores.reduce((s,x)=>s+(x-mean)*(x-mean),0)/scores.length;
+  const sd=Math.sqrt(variance);
+  const mps=q.n?mean/q.n*100:0;
+  return {n:scores.length,mean,mps,sd};
+}
+function renderReports(){
+  const checks=$('#reportQuizChecks');
+  checks.innerHTML=state.quizzes.map(q=>{
+    const st=statsForQuiz(q);
+    return `<label class="checkline"><input type="checkbox" class="reportQuizCheck" value="${q.id}" ${st.n?'checked':''}>
+      <span><b>${esc(q.subject||q.title)}</b><br><span class="small muted">${esc(q.title)} · ${st.n} saved scan(s)</span></span></label>`;
+  }).join('');
+  checks.querySelectorAll('input').forEach(x=>x.onchange=renderReportSummary);
+  renderReportSummary();
+}
+function selectedReportQuizzes(){
+  const ids=[...document.querySelectorAll('.reportQuizCheck:checked')].map(x=>x.value);
+  return state.quizzes.filter(q=>ids.includes(q.id));
+}
+function fmt2(v){return v==null?'—':Number(v).toFixed(2)}
+function renderReportSummary(){
+  const qs=selectedReportQuizzes(),box=$('#reportSummary');
+  if(!qs.length){box.innerHTML='<div class="empty">Select at least one subject/quiz.</div>';return}
+  box.innerHTML=`<table><thead><tr><th>Subject</th><th>Scans</th><th>MPS</th><th>Mean</th><th>SD</th></tr></thead><tbody>${
+    qs.map(q=>{const s=statsForQuiz(q);return `<tr><td><b>${esc(q.subject||q.title)}</b></td><td>${s.n}</td><td>${fmt2(s.mps)}</td><td>${fmt2(s.mean)}</td><td>${fmt2(s.sd)}</td></tr>`}).join('')
+  }</tbody></table>`;
+}
+$('#refreshReportBtn').onclick=renderReports;
+function wordEscape(s=''){return String(s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]))}
+$('#downloadWordBtn').onclick=()=>{
+  const qs=selectedReportQuizzes();if(!qs.length)return alert('Select at least one subject/quiz.');
+  const rows=qs.map(q=>{const s=statsForQuiz(q);return `
+    <tr><td>${wordEscape(q.subject||q.title)}</td><td>${fmt2(s.mps)}</td><td>${fmt2(s.mean)}</td><td>${fmt2(s.sd)}</td></tr>`}).join('');
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8">
+  <style>
+  @page{size:A4;margin:0.7in}body{font-family:Arial,sans-serif;color:#111}
+  .center{text-align:center}.dep{font-size:18pt;font-weight:bold}.school{font-weight:bold;font-size:10pt}
+  hr{border:0;border-top:1.5pt solid #000;margin:8pt 0 34pt}
+  h2{font-family:"Times New Roman",serif;font-size:14pt;margin:0;text-align:center}
+  table{width:100%;border-collapse:collapse;margin-top:18pt;font-family:"Times New Roman",serif;font-size:12pt}
+  th,td{border:1pt solid #333;padding:5pt;text-align:center}th{font-weight:bold}
+  td:first-child{text-align:left;font-weight:bold}
+  .sign{margin-top:70pt;width:100%;font-family:"Times New Roman",serif;font-size:12pt}
+  .left{width:48%;float:left}.right{width:40%;float:right;margin-top:90pt}
+  .name{font-weight:bold;margin-top:20pt}.role{text-align:center}
+  </style></head><body>
+  <div class="center">Republic of the Philippines</div>
+  <div class="center dep">Department of Education</div>
+  <div class="center school">Region IV-A CALABARZON<br>SCHOOLS DIVISION OF QUEZON PROVINCE<br>SAN PABLO SUHA ELEMENTARY SCHOOL<br>CATANAUAN, QUEZON</div>
+  <hr>
+  <h2>${wordEscape($('#reportHeading').value)}</h2>
+  <h2>${wordEscape($('#reportAssessment').value)}</h2>
+  <h2>${wordEscape($('#reportGradeSection').value)}</h2>
+  <table><thead><tr><th>Subject</th><th>MPS</th><th>MEAN</th><th>SD</th></tr></thead><tbody>${rows}</tbody></table>
+  <div class="sign">
+    <div class="left">Prepared by:<div class="name">${wordEscape($('#reportPrepared').value)}</div><div class="role">${wordEscape($('#reportPreparedRole').value)}</div></div>
+    <div class="right">Noted by:<div class="name">${wordEscape($('#reportNoted').value)}</div><div class="role">${wordEscape($('#reportNotedRole').value)}</div></div>
+  </div>
+  </body></html>`;
+  downloadBlob(new Blob(['\ufeff',html],{type:'application/msword'}),'QuickGrade_MPS_Mean_SD_Report.doc');
+};
+
+// ---------- Full backup / restore ----------
+function blobToDataURL(blob){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(blob)})}
+function dataURLToBlob(dataURL){
+  const [head,b64]=dataURL.split(','),mime=(head.match(/data:(.*?);/)||[])[1]||'image/jpeg';
+  const bin=atob(b64),arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+  return new Blob([arr],{type:mime});
+}
+$('#backupBtn').onclick=async()=>{
+  const entries=await dbEntries(),images={};
+  for(const [id,blob] of entries)images[id]=await blobToDataURL(blob);
+  const backup={version:4,exportedAt:new Date().toISOString(),meta:{quizzes:state.quizzes,activeQuizId:state.activeQuizId,history:state.history,students:state.students},images};
+  downloadBlob(new Blob([JSON.stringify(backup)],{type:'application/json'}),'QuickGrade_Full_Backup.json');
+};
+$('#restoreInput').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{
+    const x=JSON.parse(await f.text());
+    if(!x.meta?.quizzes || !Array.isArray(x.meta.quizzes))throw new Error('Invalid backup');
+    if(!confirm('Restore this backup? Current QuickGrade data on this device will be replaced.'))return;
+    state.quizzes=x.meta.quizzes;state.activeQuizId=x.meta.activeQuizId||state.quizzes[0].id;state.history=x.meta.history||[];state.students=x.meta.students||[];
+    saveMeta();await dbClear();
+    for(const [id,data] of Object.entries(x.images||{}))await dbPut(id,dataURLToBlob(data));
+    refreshSelectors();renderKeyEditor();renderSheet();renderHistory();updateStorage();alert('Backup restored successfully.');
+  }catch(err){alert('Could not restore this file. It does not look like a valid QuickGrade backup.')}
+  e.target.value='';
+};
+function downloadBlob(blob,name){
+  if(window.AndroidBridge && typeof window.AndroidBridge.saveDataUrl==='function'){
+    const reader=new FileReader();
+    reader.onload=()=>{ try{ window.AndroidBridge.saveDataUrl(reader.result,name,blob.type||'application/octet-stream'); }catch(e){ console.warn(e); } };
+    reader.readAsDataURL(blob);
+    return;
+  }
+  const a=document.createElement('a'),u=URL.createObjectURL(blob);a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1200);
+}
+
+// ---------- Storage + install ----------
+async function updateStorage(){
+  const el=$('#storageText'),bar=$('#storageFill');
+  try{
+    let txt=`${state.history.length} saved scan${state.history.length===1?'':'s'}`;
+    if(navigator.storage?.estimate){
+      const e=await navigator.storage.estimate(),used=(e.usage||0)/1048576,quota=(e.quota||0)/1048576;
+      txt+=` · ${used.toFixed(1)} MB used`;
+      if(quota){bar.style.width=Math.min(100,used/quota*100)+'%'}
+    }
+    if(navigator.storage?.persisted && await navigator.storage.persisted())txt+=' · persistent storage enabled';
+    el.textContent=txt;
+  }catch(e){el.textContent=`${state.history.length} saved scans · local device storage`}
+}
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();state.deferredInstall=e;$('#installBtn').style.display='inline-block';
+});
+$('#installBtn').onclick=async()=>{
+  if(!state.deferredInstall)return;state.deferredInstall.prompt();await state.deferredInstall.userChoice;state.deferredInstall=null;$('#installBtn').style.display='none';
+};
+window.addEventListener('appinstalled',()=>{$('#installText').innerHTML='<b>Installed.</b> Open QuickGrade from your Home Screen; the cached app can work offline.'});
+if(navigator.storage?.persist)navigator.storage.persist().catch(()=>{});
+
+
+// ---------- Init ----------
+loadMeta();refreshSelectors();renderStudents();renderKeyEditor();renderSheet();renderHistory();updateStorage();
+if(window.AndroidBridge){ const h=$('#installText'); if(h)h.innerHTML='<b>Android app mode.</b> QuickGrade is installed locally and works offline.'; const ib=$('#installBtn'); if(ib)ib.style.display='none'; }
+const cc=$('#scanCanvas').getContext('2d');cc.fillStyle='#111';cc.fillRect(0,0,$('#scanCanvas').width,$('#scanCanvas').height);
+</script>
+</body>
+</html>
