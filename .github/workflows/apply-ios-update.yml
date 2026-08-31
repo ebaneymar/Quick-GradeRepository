@@ -28,7 +28,8 @@ jobs:
           git config user.name "Codex"
           git config user.email "codex@openai.com"
           git cherry-pick 9f6f12b 4f4ce7b
-          git push origin HEAD:main
+          git rm .github/workflows/build-ios.yml
+          git commit -m "Use one-time personal iOS build"
 
       - name: Build unsigned device app
         run: |
@@ -57,10 +58,6 @@ jobs:
           path: build/QuickGrade-personal-unsigned.ipa
           if-no-files-found: error
 
-      - name: Remove one-time handoff
-        if: success()
+      - name: Publish working iOS source
         run: |
-          git rm .github/workflows/apply-ios-update.yml
-          git commit -m "Remove one-time iOS build handoff"
           git push origin HEAD:main
-
