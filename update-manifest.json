@@ -1,9 +1,9 @@
 {
-  "version": "1.2.2",
+  "version": "1.2.3",
   "min_shell_version": "1.2.0",
   "package": "QuickGrade_Update.zip",
   "download_url": "https://raw.githubusercontent.com/ebaneymar/Quick-GradeRepository/main/QuickGrade_Update.zip",
-  "sha256": "270a5cd3fbd053d095ad2ec238577d0da7aa877e29e48dd5073c2550eb96c31b",
-  "size": 65020,
-  "notes": "Adds personal iPhone shell compatibility while preserving saved quizzes, grades, roster, history, and scan images."
+  "sha256": "27d3950bf6b010e3d039f37a6035aec4239145a419bd6b82d9297136736bf0cb",
+  "size": 64638,
+  "notes": "Uses compact thin-gray lettered choice circles inspired by the provided answer-sheet references. Saved quizzes, grades, roster, history, and scan images are preserved."
 }

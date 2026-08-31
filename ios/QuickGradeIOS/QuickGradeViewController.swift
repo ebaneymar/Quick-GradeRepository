@@ -4,7 +4,7 @@ import WebKit
 
 final class QuickGradeViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
     private static let shellVersion = "1.2.0"
-    private static let bundledRuntimeVersion = "1.2.2"
+    private static let bundledRuntimeVersion = "1.2.3"
     private static let manifestURL = URL(string: "https://raw.githubusercontent.com/ebaneymar/Quick-GradeRepository/main/update-manifest.json")!
 
     private var webView: WKWebView!
