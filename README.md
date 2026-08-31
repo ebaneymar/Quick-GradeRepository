@@ -1,32 +1,36 @@
-# QuickGrade Android
+# QuickGrade Android v1.2
 
-QuickGrade is an offline bubble-sheet grading app wrapped in a native Android WebView.
+QuickGrade Android wrapper with full-screen automatic camera scanning and a **MATH-a-PANG-style two-file updater**.
 
-## Included
+## Normal future updates: only 2 files
 
-- QuickGrade HTML scanner embedded in `app/src/main/assets/index.html`
-- A–D / A–E per-quiz choice setting
-- Up to 60 questions
-- Local quiz, roster, score, and scan history storage
-- Captured scan images stored in WebView IndexedDB
-- Camera/photo picker integration
-- Android Downloads bridge for CSV, DOC, and backup exports
-- GitHub Actions workflow that builds a debug APK
+After installing the v1.2 Android shell once, normal QuickGrade UI/scanner/report changes are published with only:
 
-## Build on GitHub
+1. `update-manifest.json`
+2. `QuickGrade_Update.zip`
 
-Open the repository **Actions** tab, choose **Build QuickGrade APK**, and run the workflow. On success, download the `QuickGrade-debug-apk` artifact.
+The APK does not need to be reinstalled for normal HTML/JavaScript updates. The app checks the manifest, downloads the ZIP, verifies SHA-256, installs the new runtime, and reloads itself.
 
-The workflow uses Android Gradle Plugin 8.7.x with Gradle 8.9 and JDK 17, targeting Android API 35.
+### Saved data is preserved
 
-## Local build
+Updates replace only the runtime `index.html`. They do **not** clear the WebView origin, localStorage, IndexedDB, quizzes, student roster, scores, scan history, or stored scan images.
 
-With Android SDK API 35 and Gradle 8.9 available:
+## Fixed update URL
 
-```bash
-gradle :app:assembleDebug
-```
+The shell checks:
 
-APK output:
+`https://raw.githubusercontent.com/ebaneymar/Quick-GradeRepository/main/update-manifest.json`
 
-`app/build/outputs/apk/debug/app-debug.apk`
+The provided example manifest downloads:
+
+`https://raw.githubusercontent.com/ebaneymar/Quick-GradeRepository/main/QuickGrade_Update.zip`
+
+## Important
+
+If a future update changes native Android Java code (for example camera permissions, WebView bridge code, or Android APIs), that requires a new APK shell once. After installing that shell, the same two-file runtime update system continues.
+
+## Build APK
+
+GitHub Actions workflow: `.github/workflows/build-apk.yml`
+
+Build artifact: `app-debug.apk`
