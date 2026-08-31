@@ -1,10 +1,14 @@
-# QuickGrade v1.3
+# QuickGrade v1.4
 
 QuickGrade for Android and personal iPhone use, with full-screen automatic camera scanning and a **MATH-a-PANG-style two-file updater**.
 
-## Answer-sheet update
+## Scanner and paper-saving update
 
-Version 1.3 spreads 30-item and other shorter quizzes across the usable A4 page instead of leaving most of the paper blank. Answer sheets can be exported as PDF, Word, or PNG, and keep the compact choice-circle style. The scanner recognizes both the new adaptive layout and older QuickGrade answer sheets.
+Version 1.4 prints two complete answer sheets for quizzes up to 30 items on one US Letter / short-bond page, with a dashed center cut line. Each half-sheet has four registration squares, compact choice circles, and a machine-readable QuickGrade form code.
+
+The full-screen scanner now searches the complete portrait camera frame, so a landscape half-sheet no longer has to reach the phone screen's corners. When the form is recognized, all four registration squares, the sheet outline, and the form code turn green. QuickGrade waits for three stable readings before it closes the camera and shows the grade. Sheets printed by QuickGrade 1.2 and 1.3 remain supported.
+
+Answer sheets can be exported as Letter-size PDF, Word, or PNG. Scan one cut half-sheet at a time in landscape orientation.
 
 On Android, exported files are saved in `Downloads/QuickGrade`. On iPhone, the native share sheet lets you choose Save to Files, Print, AirDrop, or another compatible app.
 

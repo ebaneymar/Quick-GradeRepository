@@ -102,8 +102,9 @@ hr{border:0;border-top:1px solid #eee7d6;margin:15px 0}
 .camera-overlay{position:fixed;inset:0;z-index:9999;background:#000;display:none;overflow:hidden}
 .camera-overlay.open{display:block}
 .scanner-video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.scanner-detect{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none}
 .scanner-shade{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.34),transparent 18%,transparent 77%,rgba(0,0,0,.58));pointer-events:none}
-.scanner-guide{position:absolute;left:50%;top:50%;width:min(78vw,430px);aspect-ratio:1000/1400;max-height:72vh;transform:translate(-50%,-50%);border:2px solid rgba(255,255,255,.55);border-radius:18px;box-shadow:0 0 0 9999px rgba(0,0,0,.10);pointer-events:none}
+.scanner-guide{position:absolute;left:50%;top:50%;width:min(92vw,640px);aspect-ratio:1000/647;max-height:72vh;transform:translate(-50%,-50%);border:2px solid rgba(255,255,255,.55);border-radius:18px;box-shadow:0 0 0 9999px rgba(0,0,0,.10);pointer-events:none;z-index:1}
 .scanner-guide:before,.scanner-guide:after{content:"";position:absolute;width:52px;height:52px;border-color:var(--yellow);border-style:solid}
 .scanner-guide:before{left:-3px;top:-3px;border-width:5px 0 0 5px;border-radius:15px 0 0 0}
 .scanner-guide:after{right:-3px;bottom:-3px;border-width:0 5px 5px 0;border-radius:0 0 15px 0}
@@ -125,8 +126,8 @@ hr{border:0;border-top:1px solid #eee7d6;margin:15px 0}
 @media print{
   body *{visibility:hidden!important}
   #sheetSvg,#sheetSvg *{visibility:visible!important}
-  #sheetSvg{position:absolute;left:0;top:0;width:210mm!important;height:297mm!important;box-shadow:none}
-  @page{size:A4 portrait;margin:0}
+  #sheetSvg{position:absolute;left:0;top:0;width:8.5in!important;height:11in!important;box-shadow:none}
+  @page{size:Letter portrait;margin:0}
 }
 </style>
 </head>
@@ -267,7 +268,7 @@ hr{border:0;border-top:1px solid #eee7d6;margin:15px 0}
   <section id="sheet" class="page">
     <div class="card">
       <div class="row">
-        <div><h2>Printable Answer Sheet</h2><div class="small muted">A4 portrait · automatically spreads the selected number of questions across the usable sheet</div></div>
+        <div><h2>Printable Answer Sheet</h2><div class="small muted">Short bond / US Letter · two 30-item answer sheets on one page</div></div>
         <div class="toolbar right" style="justify-content:flex-end">
           <button class="btn primary" id="downloadSheetPdfBtn">Download PDF</button>
           <button class="btn soft" id="downloadSheetDocBtn">Word (.doc)</button>
@@ -275,9 +276,9 @@ hr{border:0;border-top:1px solid #eee7d6;margin:15px 0}
           <button class="btn soft" onclick="window.print()">Print</button>
         </div>
       </div>
-      <div class="notice good" style="margin-top:10px">The bubble rows automatically expand or tighten to use the page. A 30-item quiz now fills the answer sheet instead of occupying only the top half.</div>
+      <div class="notice good" style="margin-top:10px">For quizzes up to 30 items, one Letter-size page prints two complete forms. Cut on the dashed center line, then scan either half-sheet in landscape.</div>
       <div class="sheet-wrap" style="margin-top:12px">
-        <svg id="sheetSvg" viewBox="0 0 1000 1400" xmlns="http://www.w3.org/2000/svg" aria-label="QuickGrade answer sheet"></svg>
+        <svg id="sheetSvg" viewBox="0 0 1000 1294" xmlns="http://www.w3.org/2000/svg" aria-label="QuickGrade answer sheet"></svg>
       </div>
     </div>
   </section>
@@ -292,7 +293,7 @@ hr{border:0;border-top:1px solid #eee7d6;margin:15px 0}
         <input id="scanStudent" list="studentList" placeholder="Start typing learner name">
         <button class="hero-scan" id="liveCameraBtn" style="margin-top:12px">📷 <span>START FULL-SCREEN SCAN</span></button>
         <label class="filelabel" style="margin-top:8px;background:#f4efe1;border:1px solid #e4dbc2">Choose Existing Photo<input id="photoInput" type="file" accept="image/*"></label>
-        <div id="scanStatus" class="notice" style="margin-top:10px">The camera scans automatically. Keep the whole answer sheet and all four black corner markers inside the guide.</div>
+        <div id="scanStatus" class="notice" style="margin-top:10px">The camera scans automatically. Scan one cut half-sheet and keep its four black markers plus the form code inside the guide.</div>
         <label style="display:flex;align-items:center;gap:8px;margin-top:11px">
           <input id="autoSave" type="checkbox" checked style="width:auto"> Auto-save score + successful scan image
         </label>
@@ -300,7 +301,7 @@ hr{border:0;border-top:1px solid #eee7d6;margin:15px 0}
 
       <div class="card half">
         <h3>Automatic scanning</h3>
-        <p class="small">Tap <b>Start Full-Screen Scan</b>, point the rear camera at the complete answer sheet, and hold still. There is no capture button. QuickGrade waits until it recognizes a valid sheet, then closes the camera and shows the grade.</p>
+        <p class="small">Tap <b>Start Full-Screen Scan</b>, point the rear camera at one complete half-sheet, and hold still. The corners and form code turn green when detected. There is no capture button.</p>
         <div class="notice good">For best results: good lighting, paper flat, no cropped corners, and dark shaded bubbles.</div>
       </div>
 
@@ -376,10 +377,11 @@ hr{border:0;border-top:1px solid #eee7d6;margin:15px 0}
 
 <div id="cameraOverlay" class="camera-overlay" aria-hidden="true">
   <video id="video" class="scanner-video" autoplay playsinline muted></video>
+  <canvas id="scannerDetectCanvas" class="scanner-detect"></canvas>
   <div class="scanner-shade"></div>
-  <div class="scanner-guide"><div class="scanner-corners"></div></div>
+  <div id="scannerGuide" class="scanner-guide"><div class="scanner-corners"></div></div>
   <div class="camera-top">
-    <div><b>QuickGrade Scanner</b><br><span>Keep all 4 black markers visible</span></div>
+    <div><b>QuickGrade Scanner</b><br><span>Scan one half-sheet · wait for green markers</span></div>
     <button class="camera-close" id="stopCamBtn" type="button" aria-label="Close camera">×</button>
   </div>
   <div class="camera-bottom"><div id="cameraStatus" class="camera-status" aria-live="polite">Starting rear camera…</div></div>
@@ -601,78 +603,116 @@ $('#clearStudentsBtn').onclick=()=>{
 };
 
 // ---------- Exact printable OMR layout ----------
-const TEMPLATE={w:1000,h:1400, markerCenters:[
+const PAGE_TEMPLATE={w:1000,h:1294};
+const COMPACT_TEMPLATE={w:1000,h:630,markerCenters:[
+  {x:42,y:42},{x:958,y:42},{x:958,y:588},{x:42,y:588}
+]};
+const FULL_TEMPLATE={w:1000,h:1294,markerCenters:[
+  {x:42,y:42},{x:958,y:42},{x:958,y:1252},{x:42,y:1252}
+]};
+const V13_TEMPLATE={w:1000,h:1400,markerCenters:[
   {x:45,y:45},{x:955,y:45},{x:955,y:1355},{x:45,y:1355}
 ]};
-function bubbleLayout(q){
-  const n=q.n, letters=quizLetters(q), per=Math.ceil(n/2);
-  const rows=[];
-  // Use the full safe vertical area between the header and footer.
-  // Scanner coordinates use this same function, so print/export and recognition stay calibrated.
-  const maxRows=Math.max(per,n-per);
-  const startY=270, endY=1195;
+const FORM_CODE_BITS=[1,1,0,1,0,0,1,1,0,1,1,1,0,0,1,0,1,1,0,1,0,1,1];
+const COMPACT_CODE={x:408,y:112,module:8,h:32};
+const FULL_CODE={x:408,y:160,module:8,h:38};
+
+function compactBubbleLayout(q){
+  const n=q.n,letters=quizLetters(q),per=Math.ceil(n/2),rows=[];
+  const maxRows=Math.max(per,n-per),startY=208,endY=522;
   const step=maxRows>1?(endY-startY)/(maxRows-1):0;
   for(let i=0;i<n;i++){
-    const col=i<per?0:1;
-    const r=col===0?i:i-per;
-    const y=startY+r*step;
-    const baseX=col===0?185:628;
-    const gap=35;
-    rows.push(letters.map((label,j)=>({x:baseX+j*gap,y,label})));
+    const col=i<per?0:1,r=col===0?i:i-per,y=startY+r*step,baseX=col===0?164:620,gap=33;
+    rows.push(letters.map((label,j)=>({x:baseX+j*gap,y,label,r:9})));
+  }
+  return rows;
+}
+function fullLetterBubbleLayout(q){
+  const n=q.n,letters=quizLetters(q),per=Math.ceil(n/2),rows=[];
+  const maxRows=Math.max(per,n-per),startY=272,endY=1165;
+  const step=maxRows>1?(endY-startY)/(maxRows-1):0,radius=Math.max(6.5,Math.min(10.5,step*.36));
+  for(let i=0;i<n;i++){
+    const col=i<per?0:1,r=col===0?i:i-per,y=startY+r*step,baseX=col===0?180:625,gap=34;
+    rows.push(letters.map((label,j)=>({x:baseX+j*gap,y,label,r:radius})));
+  }
+  return rows;
+}
+function v13BubbleLayout(q){
+  const n=q.n,letters=quizLetters(q),per=Math.ceil(n/2),rows=[];
+  const maxRows=Math.max(per,n-per),startY=270,endY=1195,step=maxRows>1?(endY-startY)/(maxRows-1):0;
+  for(let i=0;i<n;i++){
+    const col=i<per?0:1,r=col===0?i:i-per,y=startY+r*step,baseX=col===0?185:628,gap=35;
+    rows.push(letters.map((label,j)=>({x:baseX+j*gap,y,label,r:11.5})));
   }
   return rows;
 }
 function legacyBubbleLayout(q){
-  // Backward compatibility for sheets printed by QuickGrade 1.2 and earlier.
-  const n=q.n, letters=quizLetters(q), per=Math.ceil(n/2),rows=[];
+  const n=q.n,letters=quizLetters(q),per=Math.ceil(n/2),rows=[];
   for(let i=0;i<n;i++){
     const col=i<per?0:1,r=col===0?i:i-per,y=255+r*39,baseX=col===0?185:628,gap=35;
-    rows.push(letters.map((label,j)=>({x:baseX+j*gap,y,label})));
+    rows.push(letters.map((label,j)=>({x:baseX+j*gap,y,label,r:11.5})));
   }
   return rows;
 }
-function renderSheet(){
-  const q=getQuiz();
-  const svg=$('#sheetSvg');
-  const per=Math.ceil(q.n/2);
-  const rows=bubbleLayout(q);
+function barcodeSvg(code){
+  const width=FORM_CODE_BITS.length*code.module;
+  return `<rect x="${code.x-3}" y="${code.y-3}" width="${width+6}" height="${code.h+6}" rx="2" fill="#fff" stroke="#aaa" stroke-width="1"/>`+
+    FORM_CODE_BITS.map((bit,i)=>bit?`<rect x="${code.x+i*code.module}" y="${code.y}" width="${code.module}" height="${code.h}" fill="#000"/>`:'').join('');
+}
+function formSvg(q,copyLabel){
+  const rows=compactBubbleLayout(q),per=Math.ceil(q.n/2),letters=quizLetters(q);
   let s=`
-  <rect x="0" y="0" width="1000" height="1400" fill="white"/>
-  <rect x="26" y="26" width="22" height="22" fill="#000"/>
-  <rect x="952" y="26" width="22" height="22" fill="#000"/>
-  <rect x="952" y="1352" width="22" height="22" fill="#000"/>
-  <rect x="26" y="1352" width="22" height="22" fill="#000"/>
-
-  <text x="500" y="70" text-anchor="middle" font-family="Arial,sans-serif" font-size="24" font-weight="700" fill="#222">${esc(q.title)}</text>
-  <text x="500" y="95" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#777">QuickGrade Bubble Answer Sheet</text>
-
-  <text x="88" y="136" font-family="Arial,sans-serif" font-size="13" fill="#666">Name</text>
-  <line x1="128" y1="139" x2="470" y2="139" stroke="#bfbfbf" stroke-width="1"/>
-  <text x="540" y="136" font-family="Arial,sans-serif" font-size="13" fill="#666">Section</text>
-  <line x1="586" y1="139" x2="790" y2="139" stroke="#bfbfbf" stroke-width="1"/>
-  <text x="810" y="136" font-family="Arial,sans-serif" font-size="13" fill="#666">Score</text>
-  <line x1="845" y1="139" x2="920" y2="139" stroke="#bfbfbf" stroke-width="1"/>
-
-  <line x1="500" y1="182" x2="500" y2="1245" stroke="#f1f1f1" stroke-width="1"/>
-  <text x="230" y="208" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#999">Shade one answer only</text>
-  <text x="710" y="208" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#999">Shade one answer only</text>
-  ${quizLetters(q).map((ch,j)=>`<text x="${185+j*35}" y="230" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="500" fill="#888">${ch}</text>`).join('')}
-  ${quizLetters(q).map((ch,j)=>`<text x="${628+j*35}" y="230" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="500" fill="#888">${ch}</text>`).join('')}
-  `;
+  <rect x="30" y="30" width="24" height="24" fill="#000"/><rect x="946" y="30" width="24" height="24" fill="#000"/>
+  <rect x="946" y="576" width="24" height="24" fill="#000"/><rect x="30" y="576" width="24" height="24" fill="#000"/>
+  <text x="500" y="55" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#222">${esc(q.title)}</text>
+  <text x="500" y="76" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#777">QuickGrade · ${q.n} items · Shade one circle completely</text>
+  <text x="880" y="55" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="#555">COPY ${copyLabel}</text>
+  <text x="76" y="101" font-family="Arial,sans-serif" font-size="12" fill="#555">Name</text><line x1="112" y1="104" x2="385" y2="104" stroke="#999"/>
+  <text x="625" y="101" font-family="Arial,sans-serif" font-size="12" fill="#555">Section</text><line x1="671" y1="104" x2="835" y2="104" stroke="#999"/>
+  <text x="855" y="101" font-family="Arial,sans-serif" font-size="12" fill="#555">Score</text><line x1="891" y1="104" x2="930" y2="104" stroke="#999"/>
+  ${barcodeSvg(COMPACT_CODE)}
+  <text x="500" y="155" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="700" letter-spacing="1" fill="#555">QG FORM CODE</text>
+  <line x1="500" y1="174" x2="500" y2="546" stroke="#ececec"/>
+  ${letters.map((ch,j)=>`<text x="${164+j*33}" y="184" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#777">${ch}</text>`).join('')}
+  ${letters.map((ch,j)=>`<text x="${620+j*33}" y="184" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#777">${ch}</text>`).join('')}`;
   rows.forEach((arr,i)=>{
-    const col=i<per?0:1;
-    const numX=col===0?92:535;
-    const y=arr[0].y;
-    s+=`<text x="${numX}" y="${y+4}" text-anchor="end" font-family="Arial,sans-serif" font-size="14" font-weight="700" fill="#333">${i+1}</text>`;
-    arr.forEach(p=>{
-      s+=`<circle cx="${p.x}" cy="${p.y}" r="11.5" fill="#fff" stroke="#aaa" stroke-width="1"/>
-      <text x="${p.x}" y="${p.y+3.2}" text-anchor="middle" font-family="Arial,sans-serif" font-size="9.5" font-weight="400" fill="#999">${p.label}</text>`;
-    });
+    const numX=i<per?104:560,y=arr[0].y;
+    s+=`<text x="${numX}" y="${y+3.6}" text-anchor="end" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="#333">${i+1}</text>`;
+    arr.forEach(p=>{s+=`<circle cx="${p.x}" cy="${p.y}" r="${p.r}" fill="#fff" stroke="#999" stroke-width="1"/><text x="${p.x}" y="${p.y+2.8}" text-anchor="middle" font-family="Arial,sans-serif" font-size="7.5" fill="#999">${p.label}</text>`});
   });
-  s+=`
-  <text x="500" y="1310" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#888">
-    Use dark shading and keep all four black corner squares visible when scanning.
-  </text>`;
+  return s+`<text x="500" y="558" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#777">Keep the form flat. Do not cover the four black squares or form code.</text>`;
+}
+function fullFormSvg(q){
+  const rows=fullLetterBubbleLayout(q),per=Math.ceil(q.n/2),letters=quizLetters(q);
+  let s=`
+  <rect x="30" y="30" width="24" height="24" fill="#000"/><rect x="946" y="30" width="24" height="24" fill="#000"/>
+  <rect x="946" y="1240" width="24" height="24" fill="#000"/><rect x="30" y="1240" width="24" height="24" fill="#000"/>
+  <text x="500" y="70" text-anchor="middle" font-family="Arial,sans-serif" font-size="25" font-weight="700" fill="#222">${esc(q.title)}</text>
+  <text x="500" y="96" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#777">QuickGrade Bubble Answer Sheet · ${q.n} items</text>
+  <text x="82" y="132" font-family="Arial,sans-serif" font-size="13" fill="#555">Name</text><line x1="124" y1="135" x2="410" y2="135" stroke="#999"/>
+  <text x="620" y="132" font-family="Arial,sans-serif" font-size="13" fill="#555">Section</text><line x1="669" y1="135" x2="835" y2="135" stroke="#999"/>
+  <text x="856" y="132" font-family="Arial,sans-serif" font-size="13" fill="#555">Score</text><line x1="894" y1="135" x2="930" y2="135" stroke="#999"/>
+  ${barcodeSvg(FULL_CODE)}<text x="500" y="212" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="700" letter-spacing="1" fill="#555">QG FORM CODE</text>
+  <line x1="500" y1="235" x2="500" y2="1192" stroke="#ececec"/>
+  ${letters.map((ch,j)=>`<text x="${180+j*34}" y="248" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#777">${ch}</text>`).join('')}
+  ${letters.map((ch,j)=>`<text x="${625+j*34}" y="248" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#777">${ch}</text>`).join('')}`;
+  rows.forEach((arr,i)=>{
+    const y=arr[0].y,numX=i<per?104:549;
+    s+=`<text x="${numX}" y="${y+3.8}" text-anchor="end" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="#333">${i+1}</text>`;
+    arr.forEach(p=>{s+=`<circle cx="${p.x}" cy="${p.y}" r="${p.r}" fill="#fff" stroke="#999"/><text x="${p.x}" y="${p.y+2.6}" text-anchor="middle" font-family="Arial,sans-serif" font-size="7.5" fill="#999">${p.label}</text>`});
+  });
+  return s+`<text x="500" y="1210" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#777">Use dark shading. Keep all four black squares and the form code visible.</text>`;
+}
+function renderSheet(){
+  const q=getQuiz(),svg=$('#sheetSvg');
+  svg.setAttribute('viewBox',`0 0 ${PAGE_TEMPLATE.w} ${PAGE_TEMPLATE.h}`);
+  let s=`<rect x="0" y="0" width="${PAGE_TEMPLATE.w}" height="${PAGE_TEMPLATE.h}" fill="white"/>`;
+  if(q.n<=30){
+    s+=`<g transform="translate(0 8)">${formSvg(q,'A')}</g>
+      <line x1="24" y1="647" x2="976" y2="647" stroke="#777" stroke-width="1" stroke-dasharray="10 8"/>
+      <rect x="442" y="638" width="116" height="18" fill="#fff"/><text x="500" y="651" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="700" fill="#666">CUT HERE</text>
+      <g transform="translate(0 656)">${formSvg(q,'B')}</g>`;
+  }else s+=fullFormSvg(q);
   svg.innerHTML=s;
 }
 
@@ -690,16 +730,16 @@ async function sheetToCanvas(scale=2.2){
   const svg=$('#sheetSvg');
   const clone=svg.cloneNode(true);
   clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
-  clone.setAttribute('width','1000');
-  clone.setAttribute('height','1400');
+  clone.setAttribute('width',String(PAGE_TEMPLATE.w));
+  clone.setAttribute('height',String(PAGE_TEMPLATE.h));
   const xml=new XMLSerializer().serializeToString(clone);
   const blob=new Blob([xml],{type:'image/svg+xml;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   try{
     const img=await new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>reject(new Error('Could not render answer sheet'));im.src=url;});
     const canvas=document.createElement('canvas');
-    canvas.width=Math.round(1000*scale);
-    canvas.height=Math.round(1400*scale);
+    canvas.width=Math.round(PAGE_TEMPLATE.w*scale);
+    canvas.height=Math.round(PAGE_TEMPLATE.h*scale);
     const ctx=canvas.getContext('2d');
     ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
     ctx.drawImage(img,0,0,canvas.width,canvas.height);
@@ -719,8 +759,8 @@ function makeSinglePageJpegPdf(jpegBytes,imgW,imgH){
   text('%PDF-1.4\n% QuickGrade\n');
   offsets[1]=total;text('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
   offsets[2]=total;text('2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n');
-  const pageW=595.28,pageH=841.89,drawW=pageW,drawH=pageW*imgH/imgW,y=(pageH-drawH)/2;
-  offsets[3]=total;text('3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>\nendobj\n');
+  const pageW=612,pageH=792,drawW=pageW,drawH=pageH,y=0;
+  offsets[3]=total;text('3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>\nendobj\n');
   const content=`q\n${drawW.toFixed(2)} 0 0 ${drawH.toFixed(2)} 0 ${y.toFixed(2)} cm\n/Im0 Do\nQ\n`;
   const contentBytes=enc.encode(content);
   offsets[4]=total;text(`4 0 obj\n<< /Length ${contentBytes.length} >>\nstream\n`);push(contentBytes);text('endstream\nendobj\n');
@@ -743,7 +783,7 @@ async function makeSheetDocBlob(){
     if(line.length>=128){hex.push(line);line='';}
   }
   if(line)hex.push(line);
-  const rtf=`{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 Arial;}}\\paperw11907\\paperh16840\\margl0\\margr0\\margt0\\margb0\\pard\\qc{\\pict\\pngblip\\picw${canvas.width}\\pich${canvas.height}\\picwgoal11907\\pichgoal16670\n${hex.join('\n')}\n}\\par}`;
+  const rtf=`{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 Arial;}}\\paperw12240\\paperh15840\\margl0\\margr0\\margt0\\margb0\\pard\\qc{\\pict\\pngblip\\picw${canvas.width}\\pich${canvas.height}\\picwgoal12240\\pichgoal15840\n${hex.join('\n')}\n}\\par}`;
   return new Blob([rtf],{type:'application/msword'});
 }
 async function runSheetDownload(btn,job){
@@ -831,6 +871,31 @@ function setCameraStatus(text,kind=''){
   const el=$('#cameraStatus'); if(!el)return;
   el.textContent=text;el.className='camera-status'+(kind?' '+kind:'');
 }
+function clearLiveDetection(){
+  const c=$('#scannerDetectCanvas');if(!c)return;
+  const g=c.getContext('2d');g.clearRect(0,0,c.width,c.height);
+}
+function drawLiveDetection(result){
+  const c=$('#scannerDetectCanvas'),v=$('#video');
+  if(!c||!v||!result?.markers||!result?.work)return clearLiveDetection();
+  const bw=c.clientWidth||innerWidth,bh=c.clientHeight||innerHeight,dpr=Math.max(1,devicePixelRatio||1);
+  if(c.width!==Math.round(bw*dpr)||c.height!==Math.round(bh*dpr)){c.width=Math.round(bw*dpr);c.height=Math.round(bh*dpr)}
+  const g=c.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,bw,bh);
+  const sw=v.videoWidth||result.work.width,sh=v.videoHeight||result.work.height,fit=Math.min(bw/sw,bh/sh),ox=(bw-sw*fit)/2,oy=(bh-sh*fit)/2;
+  const point=p=>({x:ox+p.x*(sw/result.work.width)*fit,y:oy+p.y*(sh/result.work.height)*fit});
+  const corners=result.markers.map(point);
+  g.strokeStyle='#00e676';g.fillStyle='#00e676';g.lineWidth=3;g.shadowColor='rgba(0,230,118,.75)';g.shadowBlur=10;
+  g.beginPath();corners.forEach((p,i)=>i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y));g.closePath();g.stroke();
+  corners.forEach(p=>{g.beginPath();g.arc(p.x,p.y,14,0,Math.PI*2);g.stroke();g.beginPath();g.arc(p.x,p.y,4,0,Math.PI*2);g.fill()});
+  if(result.codeRect&&result.H){
+    const r=result.codeRect,code=[mapH(result.H,r.x,r.y),mapH(result.H,r.x+r.w,r.y),mapH(result.H,r.x+r.w,r.y+r.h),mapH(result.H,r.x,r.y+r.h)].map(point);
+    g.lineWidth=4;g.beginPath();code.forEach((p,i)=>i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y));g.closePath();g.stroke();
+    const x=Math.min(...code.map(p=>p.x)),y=Math.min(...code.map(p=>p.y));
+    g.shadowBlur=0;g.font='800 13px Arial';const label=result.barcodeFound?'FORM CODE FOUND':'SHEET FOUND',tw=g.measureText(label).width;
+    g.fillStyle='rgba(0,120,60,.92)';g.fillRect(x,Math.max(4,y-27),tw+18,23);g.fillStyle='#fff';g.fillText(label,x+9,Math.max(20,y-10));
+  }
+  g.setTransform(1,0,0,1,0,0);
+}
 function openCameraOverlay(){
   const o=$('#cameraOverlay');o.classList.add('open');o.setAttribute('aria-hidden','false');
   document.body.style.overflow='hidden';androidCall('enterScannerFullscreen');
@@ -851,13 +916,15 @@ async function startLiveScanner(){
   stopCamera();
   $('#resultCard').style.display='none';
   state.currentScan=null;state.currentBlob=null;state.liveLastSignature=null;state.liveStableFrames=0;
+  const guide=$('#scannerGuide');if(guide)guide.style.aspectRatio=q.n<=30?'1000 / 647':'1000 / 1294';
+  clearLiveDetection();
   openCameraOverlay();setCameraStatus('Starting rear camera…');
   try{
     state.stream=await navigator.mediaDevices.getUserMedia({
       video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false
     });
     const v=$('#video');v.srcObject=state.stream;await v.play();
-    setCameraStatus('Point at the whole answer sheet');
+    setCameraStatus(q.n<=30?'Point at one cut half-sheet':'Point at the whole answer sheet');
     scheduleLiveScan(350);
   }catch(e){
     closeCameraOverlay();
@@ -880,16 +947,19 @@ async function runLiveScanFrame(){
     c.getContext('2d').drawImage(v,0,0,c.width,c.height);
     const result=await analyzeImage(c,{silent:true,draw:false});
     if(!result.ok){
+      clearLiveDetection();
       state.liveLastSignature=null;state.liveStableFrames=0;
-      if(result.reason==='markers')setCameraStatus('Move back — show the whole sheet and 4 black markers');
+      if(result.reason==='markers')setCameraStatus('Show all 4 black corner squares inside the guide');
+      else if(result.reason==='code')setCameraStatus('Form found — uncover the black form code');
       else if(result.reason==='alignment')setCameraStatus('Hold the phone more directly above the paper');
       else setCameraStatus('Looking for answer sheet…');
       scheduleLiveScan(430);return;
     }
+    drawLiveDetection(result);
     const signature=state.currentScan.answers.map(a=>a||'-').join('|');
     if(signature===state.liveLastSignature)state.liveStableFrames++;
     else{state.liveLastSignature=signature;state.liveStableFrames=1;}
-    if(state.liveStableFrames<2){setCameraStatus('Sheet found — hold still…','found');scheduleLiveScan(350);return;}
+    if(state.liveStableFrames<3){setCameraStatus(result.barcodeFound?'Form code found — hold still…':'Sheet found — hold still…','found');scheduleLiveScan(330);return;}
     setCameraStatus('Scan successful ✓','found');
     await finalizeLiveScan(c);
   }catch(e){
@@ -910,6 +980,7 @@ function stopCamera(){
   clearTimeout(state.liveScanTimer);state.liveScanTimer=null;state.liveScanBusy=false;
   if(state.stream){state.stream.getTracks().forEach(t=>t.stop());state.stream=null;}
   const v=$('#video');if(v)v.srcObject=null;
+  clearLiveDetection();
   closeCameraOverlay();
 }
 function setStatus(t,bad=false,good=false){
@@ -939,34 +1010,47 @@ function rectSum(I,w,x0,y0,x1,y1){
   return I[y1*W+x1]-I[y0*W+x1]-I[y1*W+x0]+I[y0*W+x0];
 }
 function findMarkers(data,w,h){
-  const I=integralDark(data,w,h,100);
-  const regions=[[0,0,.28,.28],[.72,0,1,.28],[.72,.72,1,1],[0,.72,.28,1]];
-  const out=[];
-  for(const [rx0,ry0,rx1,ry1] of regions){
-    const x0=Math.floor(rx0*w),y0=Math.floor(ry0*h),x1=Math.floor(rx1*w),y1=Math.floor(ry1*h);
-    let best=null;
-    for(const frac of [.018,.024,.032,.042,.055]){
-      const s=Math.max(9,Math.floor(Math.min(w,h)*frac));
-      const stride=Math.max(3,Math.floor(s*.23));
-      for(let y=y0;y+s<y1;y+=stride)for(let x=x0;x+s<x1;x+=stride){
-        const dark=rectSum(I,w,x,y,x+s,y+s),ratio=dark/(s*s);
-        if(ratio<.58)continue;
-        // reward density and square area, mild preference toward outer corner
-        const score=ratio*s*s;
-        if(!best||score>best.score)best={x:x+s/2,y:y+s/2,s,score};
-      }
+  // Search the entire camera frame. A landscape half-sheet appears in the middle
+  // of a portrait preview, so fixed screen-corner search regions are unreliable.
+  const pixels=w*h,d=data.data,dark=new Uint8Array(pixels),stack=new Int32Array(pixels);
+  for(let i=0,p=0;i<pixels;i++,p+=4)if(lum(d,p)<108)dark[i]=1;
+  const minDim=Math.min(w,h),minSide=Math.max(6,minDim*.008),maxSide=minDim*.11,candidates=[];
+  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
+    const start=y*w+x;if(dark[start]!==1)continue;
+    let head=0,tail=0,count=0,sx=0,sy=0,minX=x,maxX=x,minY=y,maxY=y;
+    stack[tail++]=start;dark[start]=2;
+    while(head<tail){
+      const idx=stack[head++],py=(idx/w)|0,px=idx-py*w;count++;sx+=px;sy+=py;
+      if(px<minX)minX=px;if(px>maxX)maxX=px;if(py<minY)minY=py;if(py>maxY)maxY=py;
+      const n1=idx-1,n2=idx+1,n3=idx-w,n4=idx+w;
+      if(px>0&&dark[n1]===1){dark[n1]=2;stack[tail++]=n1}if(px<w-1&&dark[n2]===1){dark[n2]=2;stack[tail++]=n2}
+      if(py>0&&dark[n3]===1){dark[n3]=2;stack[tail++]=n3}if(py<h-1&&dark[n4]===1){dark[n4]=2;stack[tail++]=n4}
     }
-    if(!best)return null;
-    // centroid refinement
-    const d=data.data,rad=best.s*.85;let sx=0,sy=0,n=0;
-    for(let y=Math.max(0,Math.floor(best.y-rad));y<Math.min(h,Math.ceil(best.y+rad));y++){
-      for(let x=Math.max(0,Math.floor(best.x-rad));x<Math.min(w,Math.ceil(best.x+rad));x++){
-        const i=(y*w+x)*4;if(lum(d,i)<100){sx+=x;sy+=y;n++}
-      }
-    }
-    out.push(n?{x:sx/n,y:sy/n}:{x:best.x,y:best.y});
+    const bw=maxX-minX+1,bh=maxY-minY+1,aspect=bw/bh,fill=count/(bw*bh);
+    if(bw<minSide||bh<minSide||bw>maxSide||bh>maxSide||aspect<.55||aspect>1.8||fill<.48)continue;
+    candidates.push({x:sx/count,y:sy/count,count,fill,bw,bh});
   }
-  return out;
+  const pool=candidates.sort((a,b)=>b.count-a.count).slice(0,22);
+  if(pool.length<4)return null;
+  const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+  function orderQuad(points){
+    const tl=points.reduce((a,b)=>a.x+a.y<b.x+b.y?a:b),br=points.reduce((a,b)=>a.x+a.y>b.x+b.y?a:b);
+    const tr=points.reduce((a,b)=>a.x-a.y>b.x-b.y?a:b),bl=points.reduce((a,b)=>a.x-a.y<b.x-b.y?a:b);
+    return new Set([tl,tr,br,bl]).size===4?[tl,tr,br,bl]:null;
+  }
+  let best=null;
+  for(let a=0;a<pool.length-3;a++)for(let b=a+1;b<pool.length-2;b++)for(let c=b+1;c<pool.length-1;c++)for(let e=c+1;e<pool.length;e++){
+    const q=orderQuad([pool[a],pool[b],pool[c],pool[e]]);if(!q)continue;
+    const [tl,tr,br,bl]=q,top=dist(tl,tr),right=dist(tr,br),bottom=dist(br,bl),left=dist(bl,tl);
+    if(Math.min(top,bottom)<w*.22||Math.min(left,right)<h*.12)continue;
+    const area=Math.abs(q.reduce((sum,p,i)=>sum+p.x*q[(i+1)%4].y-p.y*q[(i+1)%4].x,0))/2;
+    if(area<w*h*.075)continue;
+    const opposite=Math.min(top,bottom)/Math.max(top,bottom)+Math.min(left,right)/Math.max(left,right);
+    const counts=q.map(p=>p.count),sizeFit=Math.min(...counts)/Math.max(...counts),fillFit=q.reduce((s,p)=>s+p.fill,0)/4;
+    const score=area/(w*h)*8+opposite*1.4+sizeFit*1.6+fillFit;
+    if(!best||score>best.score)best={markers:q.map(p=>({x:p.x,y:p.y})),score};
+  }
+  return best?best.markers:null;
 }
 function solve(A,b){
   const n=b.length;
@@ -992,10 +1076,10 @@ function homography(src,dst){
 function mapH(H,x,y){
   const z=H[6]*x+H[7]*y+H[8];return {x:(H[0]*x+H[1]*y+H[2])/z,y:(H[3]*x+H[4]*y+H[5])/z};
 }
-function fillScore(imgData,w,h,H,cx,cy){
+function fillScore(imgData,w,h,H,cx,cy,radius=11.5){
   const d=imgData.data;let darkness=0,count=0,darkPx=0;
   // inner disk only: avoids gray circle outline; printed light-gray letter contributes little.
-  const r=10;
+  const r=Math.max(5,Math.min(10,radius*.72));
   for(let yy=-r;yy<=r;yy+=2)for(let xx=-r;xx<=r;xx+=2){
     if(xx*xx+yy*yy>r*r)continue;
     const p=mapH(H,cx+xx,cy+yy),x=Math.round(p.x),y=Math.round(p.y);
@@ -1003,6 +1087,25 @@ function fillScore(imgData,w,h,H,cx,cy){
     const L=lum(d,(y*w+x)*4);darkness+=(255-L)/255;if(L<145)darkPx++;count++;
   }
   return count?(.55*(darkness/count)+.45*(darkPx/count)):0;
+}
+function formCodeScore(imgData,w,h,H,code){
+  const d=imgData.data,values=[];
+  for(let i=0;i<FORM_CODE_BITS.length;i++){
+    let darkness=0,count=0;
+    for(const fx of [.28,.5,.72])for(const fy of [.22,.5,.78]){
+      const p=mapH(H,code.x+(i+fx)*code.module,code.y+fy*code.h),x=Math.round(p.x),y=Math.round(p.y);
+      if(x<0||y<0||x>=w||y>=h)continue;
+      darkness+=(255-lum(d,(y*w+x)*4))/255;count++;
+    }
+    values.push(count?darkness/count:0);
+  }
+  const black=values.filter((_,i)=>FORM_CODE_BITS[i]),white=values.filter((_,i)=>!FORM_CODE_BITS[i]);
+  const avg=a=>a.reduce((s,v)=>s+v,0)/Math.max(1,a.length);
+  return {score:avg(black)-avg(white),black:avg(black),white:avg(white)};
+}
+function quadAspect(markers){
+  const d=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+  return (d(markers[0],markers[1])+d(markers[3],markers[2]))/(d(markers[0],markers[3])+d(markers[1],markers[2]));
 }
 async function analyzeImage(img,{silent=false,draw=false}={}){
   const q=getQuiz($('#scanQuiz').value);
@@ -1019,21 +1122,17 @@ async function analyzeImage(img,{silent=false,draw=false}={}){
   if(!markers){
     state.currentScan=null;
     if(!silent){
-      setStatus('I could not find all four black corner markers. Retake the photo with the entire page visible and better lighting.',true);
+      setStatus('I could not find all four black corner markers. Keep the complete half-sheet visible, flat, and well lit.',true);
       $('#resultCard').style.display='none';
     }
     return {ok:false,reason:'markers'};
   }
-  const H=homography(TEMPLATE.markerCenters,markers);
-  if(!H){
-    state.currentScan=null;
-    if(!silent)setStatus('The sheet could not be aligned. Retake the photo more directly above the page.',true);
-    return {ok:false,reason:'alignment'};
-  }
-  function readCandidate(layout,mode){
+  const observedAspect=quadAspect(markers);
+  function readCandidate(template,layout,mode,code=null){
+    const H=homography(template.markerCenters,markers);if(!H)return null;
     const answers=[],confidence=[];let evidence=0,strong=0;
     layout.forEach(arr=>{
-      const scores=arr.map(p=>fillScore(data,work.width,work.height,H,p.x,p.y));
+      const scores=arr.map(p=>fillScore(data,work.width,work.height,H,p.x,p.y,p.r));
       const order=scores.map((v,i)=>({v,i})).sort((a,b)=>b.v-a.v);
       let ans=null,conf='blank';
       if(order[0].v>=.20){
@@ -1046,15 +1145,31 @@ async function analyzeImage(img,{silent=false,draw=false}={}){
     });
     // Filled bubbles create much stronger evidence than the light printed letters.
     evidence+=strong*.14;
-    return {layout,answers,confidence,evidence,mode};
+    const expectedAspect=quadAspect(template.markerCenters);
+    evidence-=Math.abs(Math.log(observedAspect/expectedAspect))*4;
+    const codeResult=code?formCodeScore(data,work.width,work.height,H,code):null;
+    if(codeResult)evidence+=codeResult.score*6;
+    return {template,layout,answers,confidence,evidence,mode,H,code,codeResult};
   }
-  const adaptive=readCandidate(bubbleLayout(q),'adaptive');
-  const legacy=readCandidate(legacyBubbleLayout(q),'legacy');
-  const best=adaptive.evidence>=legacy.evidence?adaptive:legacy;
-  const {layout,answers,confidence}=best;
+  const candidates=[];
+  if(q.n<=30)candidates.push(readCandidate(COMPACT_TEMPLATE,compactBubbleLayout(q),'compact-v1.4',COMPACT_CODE));
+  else candidates.push(readCandidate(FULL_TEMPLATE,fullLetterBubbleLayout(q),'letter-v1.4',FULL_CODE));
+  candidates.push(readCandidate(V13_TEMPLATE,v13BubbleLayout(q),'adaptive-v1.3'));
+  candidates.push(readCandidate(V13_TEMPLATE,legacyBubbleLayout(q),'legacy-v1.2'));
+  const best=candidates.filter(Boolean).sort((a,b)=>b.evidence-a.evidence)[0];
+  if(!best){
+    state.currentScan=null;if(!silent)setStatus('The sheet could not be aligned. Hold the phone more directly above the paper.',true);
+    return {ok:false,reason:'alignment',markers,work};
+  }
+  if(best.code&&best.codeResult.score<.10){
+    state.currentScan=null;if(!silent)setStatus('The sheet was found, but the form code is covered or blurred. Hold still and keep the code visible.',true);
+    return {ok:false,reason:'code',markers,H:best.H,work};
+  }
+  const {layout,answers,confidence,H}=best;
   state.currentScan={quizId:q.id,answers,confidence,H,layout,work,layoutMode:best.mode};
   if(draw)drawPreview(work,markers,state.currentScan);
-  return {ok:true};
+  const codeRect=best.code?{x:best.code.x-3,y:best.code.y-3,w:FORM_CODE_BITS.length*best.code.module+6,h:best.code.h+6}:null;
+  return {ok:true,markers,H,work,barcodeFound:!!best.code,codeRect,layoutMode:best.mode};
 }
 async function scanImage(img){
   const result=await analyzeImage(img,{silent:false,draw:false});

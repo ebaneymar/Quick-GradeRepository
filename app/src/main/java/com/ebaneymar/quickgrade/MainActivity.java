@@ -58,7 +58,7 @@ public class MainActivity extends Activity {
     // 1) update-manifest.json
     // 2) QuickGrade_Update.zip
     private static final String SHELL_VERSION = "1.2.0";
-    private static final String BUNDLED_RUNTIME_VERSION = "1.3.0";
+    private static final String BUNDLED_RUNTIME_VERSION = "1.4.0";
     private static final String UPDATE_MANIFEST_URL =
             "https://raw.githubusercontent.com/ebaneymar/Quick-GradeRepository/main/update-manifest.json";
 
