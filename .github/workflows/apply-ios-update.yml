@@ -1,4 +1,4 @@
-name: Apply and build QuickGrade v1.3
+name: Apply and build QuickGrade v1.4
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
     branches: [ main ]
     paths:
       - '.github/workflows/apply-ios-update.yml'
-      - '.github/workflows/quickgrade-v1.3.bundle'
+      - '.github/workflows/quickgrade-v1.4.bundle'
 
 permissions:
   contents: write
@@ -20,12 +20,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Apply verified QuickGrade v1.3 update
+      - name: Apply verified QuickGrade v1.4 update
         run: |
-          git fetch .github/workflows/quickgrade-v1.3.bundle refs/heads/codex/quickgrade-v1.3:refs/heads/quickgrade-v1.3-source
+          git fetch .github/workflows/quickgrade-v1.4.bundle refs/heads/main:refs/heads/quickgrade-v1.4-source
           git config user.name "Codex"
           git config user.email "codex@openai.com"
-          git cherry-pick 969b1c029e9a6739b12af0626e646569f6347991
+          git cherry-pick 8c0ccabcad502d5d6afbbb39b83ac8defce951e7
 
       - name: Verify permanent two-file update package
         run: |
@@ -36,7 +36,7 @@ jobs:
           package = root / 'QuickGrade_Update.zip'
           manifest = json.loads((root / 'update-manifest.json').read_text(encoding='utf-8'))
           payload = package.read_bytes()
-          assert manifest['version'] == '1.3.0'
+          assert manifest['version'] == '1.4.0'
           assert manifest['size'] == len(payload)
           assert manifest['sha256'] == hashlib.sha256(payload).hexdigest()
           with zipfile.ZipFile(package) as archive:
@@ -46,7 +46,7 @@ jobs:
               html = archive.read('index.html')
           assert html == (root / 'app/src/main/assets/index.html').read_bytes()
           assert html == (root / 'ios/QuickGradeIOS/index.html').read_bytes()
-          print('QuickGrade v1.3 package verified')
+          print('QuickGrade v1.4 package verified')
           PY
 
       - name: Build unsigned device app
@@ -72,12 +72,12 @@ jobs:
       - name: Upload personal iPhone IPA
         uses: actions/upload-artifact@v4
         with:
-          name: QuickGrade-v1.3-personal-unsigned-ipa
+          name: QuickGrade-v1.4-personal-unsigned-ipa
           path: build/QuickGrade-personal-unsigned.ipa
           if-no-files-found: error
 
       - name: Publish working source
         run: |
-          git rm .github/workflows/quickgrade-v1.3.bundle
-          git commit -m "Remove temporary v1.3 build bundle"
+          git rm .github/workflows/quickgrade-v1.4.bundle .github/workflows/apply-ios-update.yml
+          git commit -m "Remove temporary v1.4 publishing files"
           git push origin HEAD:main
