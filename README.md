@@ -34,3 +34,11 @@ If a future update changes native Android Java code (for example camera permissi
 GitHub Actions workflow: `.github/workflows/build-apk.yml`
 
 Build artifact: `app-debug.apk`
+
+## Personal iPhone build
+
+The `ios/` Xcode project wraps the same offline QuickGrade runtime for iOS 15 or later. It preserves WebView local storage in a fixed Application Support location, grants the main QuickGrade page access to the iPhone camera, and supports the same two-file runtime updater.
+
+GitHub Actions builds `QuickGrade-personal-unsigned.ipa`. The IPA intentionally has no Apple distribution signature; sign it with your own Apple ID while installing through a personal sideloading tool. Free Apple-ID signatures generally need periodic renewal. Native iOS shell changes require a new IPA, while ordinary QuickGrade runtime changes continue to use the two root update files.
+
+For iOS compatibility, `QuickGrade_Update.zip` contains one **uncompressed** root entry named `index.html`. Its SHA-256 must match `update-manifest.json`.

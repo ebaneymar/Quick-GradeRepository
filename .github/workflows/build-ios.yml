@@ -1,0 +1,46 @@
+name: Build QuickGrade Personal iOS IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'ios/**'
+      - '.github/workflows/build-ios.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build unsigned device app
+        run: |
+          xcodebuild \
+            -project ios/QuickGradeIOS.xcodeproj \
+            -scheme QuickGradeIOS \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build/ios \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            clean build
+
+      - name: Package unsigned IPA for sideload signing
+        run: |
+          mkdir -p build/Payload
+          cp -R build/ios/Build/Products/Release-iphoneos/QuickGrade.app build/Payload/
+          cd build
+          zip -qry QuickGrade-personal-unsigned.ipa Payload
+
+      - name: Upload personal iPhone IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: QuickGrade-personal-unsigned-ipa
+          path: build/QuickGrade-personal-unsigned.ipa
+          if-no-files-found: error

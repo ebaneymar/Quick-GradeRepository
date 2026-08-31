@@ -1,9 +1,9 @@
 {
-  "version": "1.2.1",
+  "version": "1.2.2",
   "min_shell_version": "1.2.0",
   "package": "QuickGrade_Update.zip",
   "download_url": "https://raw.githubusercontent.com/ebaneymar/Quick-GradeRepository/main/QuickGrade_Update.zip",
-  "sha256": "9b53da4b6849f5fbcab339fff33d8aa3aa6d9062453440450327888711cabf52",
-  "size": 19948,
-  "notes": "Two-file updater test. QuickGrade runtime updater is active; saved quizzes, grades, roster, history, and scan images are preserved."
+  "sha256": "270a5cd3fbd053d095ad2ec238577d0da7aa877e29e48dd5073c2550eb96c31b",
+  "size": 65020,
+  "notes": "Adds personal iPhone shell compatibility while preserving saved quizzes, grades, roster, history, and scan images."
 }
