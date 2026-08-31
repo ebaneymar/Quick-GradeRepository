@@ -3,8 +3,8 @@ import UIKit
 import WebKit
 
 final class QuickGradeViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
-    private static let shellVersion = "1.2.0"
-    private static let bundledRuntimeVersion = "1.2.3"
+    private static let shellVersion = "1.2.1"
+    private static let bundledRuntimeVersion = "1.3.0"
     private static let manifestURL = URL(string: "https://raw.githubusercontent.com/ebaneymar/Quick-GradeRepository/main/update-manifest.json")!
 
     private var webView: WKWebView!
@@ -62,6 +62,7 @@ final class QuickGradeViewController: UIViewController, WKNavigationDelegate, WK
         let bridge = """
         window.IOSBridge = {
           checkForUpdates: function(){ window.webkit.messageHandlers.quickGrade.postMessage({action:'checkForUpdates'}); },
+          saveDataUrl: function(dataUrl,fileName,mimeType){ window.webkit.messageHandlers.quickGrade.postMessage({action:'saveDataUrl',dataUrl:dataUrl,fileName:fileName,mimeType:mimeType}); },
           getShellVersion: function(){ return \(shell); },
           getRuntimeVersion: function(){ return \(runtime); }
         };
@@ -99,8 +100,17 @@ final class QuickGradeViewController: UIViewController, WKNavigationDelegate, WK
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard message.name == "quickGrade",
               let body = message.body as? [String: Any],
-              body["action"] as? String == "checkForUpdates" else { return }
-        checkForUpdates(userInitiated: true)
+              let action = body["action"] as? String else { return }
+        switch action {
+        case "checkForUpdates":
+            checkForUpdates(userInitiated: true)
+        case "saveDataUrl":
+            guard let dataURL = body["dataUrl"] as? String,
+                  let fileName = body["fileName"] as? String else { return }
+            saveDataURL(dataURL, fileName: fileName)
+        default:
+            break
+        }
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
@@ -116,6 +126,38 @@ final class QuickGradeViewController: UIViewController, WKNavigationDelegate, WK
         decisionHandler: @escaping (WKPermissionDecision) -> Void
     ) {
         decisionHandler(frame.isMainFrame ? .grant : .deny)
+    }
+
+    private func saveDataURL(_ dataURL: String, fileName: String) {
+        do {
+            guard let comma = dataURL.firstIndex(of: ",") else {
+                throw RuntimeError("The exported file is invalid.")
+            }
+            let encoded = String(dataURL[dataURL.index(after: comma)...])
+            guard let data = Data(base64Encoded: encoded, options: .ignoreUnknownCharacters) else {
+                throw RuntimeError("The exported file could not be decoded.")
+            }
+            let invalid = CharacterSet(charactersIn: "\\/:*?\"<>|")
+            let sanitized = fileName.components(separatedBy: invalid).joined(separator: "_")
+            let safeName = sanitized.isEmpty ? "QuickGrade_Answer_Sheet.png" : sanitized
+            let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent(safeName)
+            try data.write(to: fileURL, options: .atomic)
+
+            let activity = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
+            activity.popoverPresentationController?.sourceView = view
+            activity.popoverPresentationController?.sourceRect = CGRect(
+                x: view.bounds.midX,
+                y: view.bounds.midY,
+                width: 1,
+                height: 1
+            )
+            activity.completionWithItemsHandler = { _, _, _, _ in
+                try? FileManager.default.removeItem(at: fileURL)
+            }
+            present(activity, animated: true)
+        } catch {
+            showMessage(title: "Could not save answer sheet", message: error.localizedDescription)
+        }
     }
 
     private func checkForUpdates(userInitiated: Bool) {
